@@ -14,7 +14,7 @@ import org.sims.interfaces.*;
  * @param engine     the engine to use
  * @param outputs    the output directories
  */
-public record Orchestrator(Simulation<?, ?, ?> simulation, Engine<?> engine, List<String> outputs) {
+public record Orchestrator(Simulation<?, ?, ?> simulation, Engine<?> engine, List<String> outputs, List<String> logs) {
     /**
      * Start the simulation.
      *
@@ -26,7 +26,7 @@ public record Orchestrator(Simulation<?, ?, ?> simulation, Engine<?> engine, Lis
      *
      * @param onStep The OnStep event handler.
      */
-    public void start(final OnStep onStep, final OnWrite onWrite) throws Exception {
+    public void start(final OnStep onStep, final OnWrite onWrite, final OnWrite onLog) throws Exception {
         Resources.init();
         outputs.forEach(Resources::prepareDir);
 
@@ -34,11 +34,15 @@ public record Orchestrator(Simulation<?, ?, ?> simulation, Engine<?> engine, Lis
             simulation.saveTo(writer);
         }
 
-        try (final var animator = Executors.newFixedThreadPool(24)) {
+        try (
+                final var animator = Executors.newFixedThreadPool(24);
+                final var logger = Executors.newSingleThreadExecutor()) {
             Orchestrator.save(animator, engine.initial(), 0L, outputs, onWrite);
             engine.forEach(
-                    step -> onStep.apply(step)
-                            .ifPresent(idx -> Orchestrator.save(animator, step, idx, outputs, onWrite)));
+                    step -> {
+                        Orchestrator.log(logger, step, logs, onLog);
+                        onStep.apply(step).ifPresent(idx -> Orchestrator.save(animator, step, idx, outputs, onWrite));
+                    });
         }
     }
 
@@ -78,6 +82,13 @@ public record Orchestrator(Simulation<?, ?, ?> simulation, Engine<?> engine, Lis
     }
 
     /**
+     * Log a step using an executor service
+     */
+    private static void log(final ExecutorService ex, final Step step, List<String> outputs, final OnWrite onLog) {
+        ex.submit(new Logger(step, outputs, onLog));
+    }
+
+    /**
      * A task to save an animation step
      */
     private static record Animator(Step step, Long idx, List<String> outputs, OnWrite onWrite) implements Runnable {
@@ -94,6 +105,34 @@ public record Orchestrator(Simulation<?, ?, ?> simulation, Engine<?> engine, Lis
                 step.saveTo(writers);
 
                 onWrite.run();
+            } catch (IOException e) {
+            } finally {
+                for (final var writer : writers) {
+                    try {
+                        writer.close();
+                    } catch (final IOException e) {
+                        e.printStackTrace();
+                    }
+                }
+            }
+        }
+    }
+
+    /**
+     * A task to save a log step
+     */
+    private static record Logger(Step step, List<String> outputs, OnWrite onLog) implements Runnable {
+        @Override
+        public void run() {
+            final var writers = new ArrayList<Writer>(outputs.size());
+            try {
+                for (final var filename : outputs) {
+                    writers.add(Resources.writer(filename));
+                }
+
+                step.log(writers);
+
+                onLog.run();
             } catch (IOException e) {
             } finally {
                 for (final var writer : writers) {

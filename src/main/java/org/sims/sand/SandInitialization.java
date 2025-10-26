@@ -76,7 +76,7 @@ public enum SandInitialization {
      * @param integrator The integrator to reset new particles in
      * @return The updated list of particles after respawning
      */
-    public static List<Particle> respawn(final Collection<Particle> particles, final Collection<Portal> portals,
+    public static List<List<Particle>> respawn(final Collection<Particle> particles, final Collection<Portal> portals,
             final CIM cim, final Integrator<Particle, ?> integrator) {
         final var w = WIDTH;
         final var h = HEIGHT;
@@ -84,12 +84,15 @@ public enum SandInitialization {
         final var res = RESPAWN_HEIGHT;
 
         final var updated = new ArrayList<Particle>(particles.size());
+        final var exited = new LinkedList<Particle>();
 
         for (final var p : particles) {
             if (portals.stream().noneMatch(portal -> portal.overlap(p) > 0)) {
                 updated.add(p);
                 continue;
             }
+
+            exited.add(p);
 
             Vector2 position;
             do {
@@ -103,7 +106,7 @@ public enum SandInitialization {
             integrator.reset(new_p);
         }
 
-        return updated;
+        return List.of(updated, exited);
     }
 
     /**

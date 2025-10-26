@@ -16,7 +16,7 @@ public record SandEngine(SandSimulation simulation, CIM cim, Integrator<Particle
 
     @Override
     public SandStep initial() {
-        return new SandStep(0, simulation.entities(), simulation.box());
+        return new SandStep(0, 0, simulation.entities(), simulation.box(), List.of());
     }
 
     @Override
@@ -39,11 +39,13 @@ public record SandEngine(SandSimulation simulation, CIM cim, Integrator<Particle
                 time += simulation.dt();
 
                 particles = integrator.step(particles, new SandForce.Data(cim, walls));
-                particles = simulation.teleport().apply(particles, portals, cim, integrator);
+
+                final var teleports = simulation.teleport().apply(particles, portals, cim, integrator);
+                particles = teleports.get(0);
 
                 walls = walls.stream().map(w -> w.update(time)).toList();
 
-                return new SandStep(++current, particles, walls);
+                return new SandStep(++current, time, particles, walls, teleports.get(1));
             }
         };
     }

@@ -13,7 +13,8 @@ public interface SandRespawn {
      * @param particles The current particles
      * @param portals   The portals in the simulation
      * @param cim       The CIM for superposition checks
-     * @return The updated list of particles after respawning
+     * @return The updated list of particles after respawning and the exited ones
      */
-    List<Particle> apply(final Collection<Particle> particles, final Collection<Portal> portals, CIM cim, Integrator<Particle, ?> integrator);
+    List<List<Particle>> apply(final Collection<Particle> particles, final Collection<Portal> portals, CIM cim,
+            Integrator<Particle, ?> integrator);
 }

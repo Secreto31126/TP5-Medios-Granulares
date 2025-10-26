@@ -23,4 +23,16 @@ public interface Step {
      * @throws IOException if an I/O error occurs
      */
     void saveTo(final List<Writer> writer) throws IOException;
+
+    /**
+     * Log events that occurred during this step
+     *
+     * @apiNote The method is invoked for every step after saveTo,
+     *          and the files must be appended to.
+     *
+     * @param writers the writers to log to
+     * @throws IOException if an I/O error occurs
+     */
+    default void log(final List<Writer> writers) throws IOException {
+    }
 }
