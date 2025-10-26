@@ -16,8 +16,7 @@ public record Wall(long id, Orientation orientation, Vector2 a, Vector2 b,
      * @param orientation The orientation of the wall
      * @param a           The start point
      * @param b           The end point
-     * @param movement    The movement function of the wall (time -> [position,
-     *                    velocity])
+     * @param movement    The movement function of the wall (time -> [pos, vel])
      */
     public Wall(final Orientation orientation, final Vector2 a, final Vector2 b,
             final Function<Double, Double[]> movement) {

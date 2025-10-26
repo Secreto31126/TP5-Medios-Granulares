@@ -80,6 +80,6 @@ public record Vector2(double x, double y) {
 
     @Override
     public String toString() {
-        return String.format(Locale.US, "%.14f %.14f", x, y);
+        return String.format(Locale.US, "%+.14f %+.14f", x, y);
     }
 }

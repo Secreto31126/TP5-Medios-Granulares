@@ -46,6 +46,6 @@ public record SandSimulation(long steps, long n, double omega, double aperture,
 
     @Override
     public void saveTo(final Writer writer) throws IOException {
-        writer.write(String.format(Locale.ROOT, "%d %.14f %.14f\n", steps, omega, aperture));
+        writer.write(String.format(Locale.ROOT, "%d %+.14f %+.14f\n", steps, aperture, omega));
     }
 }

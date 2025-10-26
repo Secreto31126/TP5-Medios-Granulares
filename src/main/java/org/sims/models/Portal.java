@@ -39,6 +39,6 @@ public record Portal(Orientation orientation, double constant) implements Intera
 
     @Override
     public String toString() {
-        return String.format(Locale.ROOT, "%.14f", constant);
+        return String.format(Locale.ROOT, "%+.14f", constant);
     }
 }

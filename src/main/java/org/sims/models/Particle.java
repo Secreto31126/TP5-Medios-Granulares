@@ -133,7 +133,7 @@ public record Particle(long id, Vector2 position, Vector2 velocity, Vector2 acce
 
     @Override
     public String toString() {
-        return String.format(Locale.ROOT, "%s %s %.14f", position, velocity, radius);
+        return String.format(Locale.ROOT, "%s %s %+.14f", position, velocity, radius);
     }
 
     @Override
