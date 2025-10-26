@@ -69,7 +69,7 @@ public enum SandInitialization {
      * @return The updated list of particles after respawning
      */
     public static List<Particle> respawn(final Collection<Particle> particles, final Collection<Portal> portals,
-            final CIM cim) {
+            final CIM cim, final Integrator<Particle, ?> integrator) {
         final var w = WIDTH;
         final var h = HEIGHT;
         final var res = RESPAWN_HEIGHT;
@@ -91,6 +91,7 @@ public enum SandInitialization {
 
             cim.add(new_p);
             updated.add(new_p);
+            integrator.reset(new_p);
         }
 
         return updated;

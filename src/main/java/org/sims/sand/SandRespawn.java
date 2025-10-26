@@ -2,6 +2,7 @@ package org.sims.sand;
 
 import java.util.*;
 
+import org.sims.interfaces.*;
 import org.sims.models.*;
 import org.sims.neighbours.*;
 
@@ -14,5 +15,5 @@ public interface SandRespawn {
      * @param cim       The CIM for superposition checks
      * @return The updated list of particles after respawning
      */
-    List<Particle> apply(Collection<Particle> particles, Collection<Portal> portals, CIM cim);
+    List<Particle> apply(final Collection<Particle> particles, final Collection<Portal> portals, CIM cim, Integrator<Particle, ?> integrator);
 }

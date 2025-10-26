@@ -30,6 +30,16 @@ public interface Integrator<E, D> extends Named {
     void initialize(final Collection<Particle> particles, final D data);
 
     /**
+     * Reset a single entity's data
+     *
+     * @apiNote Portals don't preserve velocity or acceleration,
+     *          unlike the game Portal
+     *
+     * @param entity The entity to reset
+     */
+    void reset(final E entity);
+
+    /**
      * Advance the simulation by one time step
      *
      * @implNote The integrator MUST NOT alter the collection

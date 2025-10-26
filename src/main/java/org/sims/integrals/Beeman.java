@@ -22,6 +22,11 @@ public record Beeman<D>(double dt, double dt2, Force<Particle, D> force, Map<Par
     }
 
     @Override
+    public void reset(Particle entity) {
+        memory.put(entity, Vector2.ZERO);    
+    }
+
+    @Override
     public List<Particle> step(final Collection<Particle> particles, D data) {
         final var prediction = particles.parallelStream().map(p -> {
             final var predicted_pos = p.position()
