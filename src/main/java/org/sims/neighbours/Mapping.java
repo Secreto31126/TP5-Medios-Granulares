@@ -55,7 +55,11 @@ record Mapping(Matrix<List<Particle>> matrix, double cells_w, double cells_h) {
 
     private List<Vector2> filterOutOfBounds(final Stream<Vector2> coords) {
         return coords
-                .filter(c -> 0 <= c.x() && c.x() < matrix.rows() && 0 <= c.y() && c.y() < matrix.cols())
+                .filter(c -> inbound(c.x(), matrix.rows()) && inbound(c.y(), matrix.cols()))
                 .toList();
+    }
+
+    private boolean inbound(final double i, final double max) {
+        return 0 <= i && i < max;
     }
 }
