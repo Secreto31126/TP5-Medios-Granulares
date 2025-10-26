@@ -34,7 +34,7 @@ public record Orchestrator(Simulation<?, ?, ?> simulation, Engine<?> engine, Lis
             simulation.saveTo(writer);
         }
 
-        try (final var animator = Executors.newFixedThreadPool(32)) {
+        try (final var animator = Executors.newFixedThreadPool(24)) {
             Orchestrator.save(animator, engine.initial(), 0L, outputs, onWrite);
             engine.forEach(
                     step -> onStep.apply(step)
