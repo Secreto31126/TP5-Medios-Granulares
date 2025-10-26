@@ -1,0 +1,22 @@
+# Python-generated files
+__pycache__/
+*.py[oc]
+build/
+dist/
+wheels/
+*.egg-info
+
+# Virtual environments
+.venv
+
+# IDE files
+.vscode/
+.idea/
+*.iml
+
+# Jupyter Notebook checkpoints
+.ipynb_checkpoints/
+
+# Playground files
+playground/
+test.py
