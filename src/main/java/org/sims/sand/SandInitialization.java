@@ -5,6 +5,7 @@ import java.util.concurrent.*;
 import java.util.function.*;
 import java.util.random.*;
 
+import org.sims.interfaces.*;
 import org.sims.models.*;
 import org.sims.neighbours.*;
 
@@ -19,7 +20,7 @@ public enum SandInitialization {
     private static final double HEIGHT = 0.7;
     private static final double AMPLITUD = 0.0015;
 
-    private static final double PORTAL = -(HEIGHT / 10f);
+    private static final double PORTAL = HEIGHT / 10f;
     private static final double RESPAWN_HEIGHT = 0.3;
 
     private static final RandomGenerator RNG = ThreadLocalRandom.current();
@@ -30,8 +31,15 @@ public enum SandInitialization {
         this.initializer = initializer;
     }
 
+    /**
+     * Create a new CIM instance
+     *
+     * @implNote The base is at Y = PORTAL, so the portal is aligned with Y = 0
+     *
+     * @return the configured CIM instance
+     */
     public static CIM cim() {
-        return new CIM(WIDTH, HEIGHT, MAX_RADIUS);
+        return new CIM(WIDTH, HEIGHT + PORTAL, MAX_RADIUS);
     }
 
     /**
@@ -53,7 +61,6 @@ public enum SandInitialization {
     public void initialize(final SandSimulation simulation) {
         try (final var cim = cim()) {
             this.initializer.accept(simulation, cim);
-            simulation.integrator().initialize(simulation.entities(), new SandForce.Data(cim, simulation.box()));
         }
     }
 
@@ -63,15 +70,17 @@ public enum SandInitialization {
      * @implNote The CIM instance is expected to be already populated with the
      *           current particles
      *
-     * @param particles The current particles
-     * @param portals   The portals in the simulation
-     * @param cim       The CIM for superposition checks
+     * @param particles  The current particles
+     * @param portals    The portals in the simulation
+     * @param cim        The CIM for superposition checks
+     * @param integrator The integrator to reset new particles in
      * @return The updated list of particles after respawning
      */
     public static List<Particle> respawn(final Collection<Particle> particles, final Collection<Portal> portals,
             final CIM cim, final Integrator<Particle, ?> integrator) {
         final var w = WIDTH;
         final var h = HEIGHT;
+        final var base = PORTAL;
         final var res = RESPAWN_HEIGHT;
 
         final var updated = new ArrayList<Particle>(particles.size());
@@ -84,7 +93,7 @@ public enum SandInitialization {
 
             Vector2 position;
             do {
-                position = uniformVector(p.radius(), w - p.radius(), res, h - p.radius());
+                position = uniformVector(p.radius(), w - p.radius(), base + res, base + h - p.radius());
             } while (superposition(cim, position, p.radius()));
 
             final var new_p = new Particle(p, position, Vector2.ZERO, Vector2.ZERO);
@@ -113,11 +122,14 @@ public enum SandInitialization {
     /**
      * Generate the particles of the system
      *
+     * @implNote The base is at Y = PORTAL, so the portal is aligned with Y = 0
+     *
      * @param simulation the simulation to populate
      */
     private static void particles(final SandSimulation simulation, final CIM cim) {
         final var w = WIDTH;
         final var h = HEIGHT;
+        final var base = PORTAL;
         final var min = MIN_RADIUS;
         final var max = MAX_RADIUS;
         final var mass = MASS;
@@ -128,7 +140,7 @@ public enum SandInitialization {
 
             do {
                 radius = RNG.nextDouble(min, max);
-                position = uniformVector(radius, w - radius, radius, h - radius);
+                position = uniformVector(radius, w - radius, base + radius, base + h - radius);
             } while (i != 0 && superposition(cim, position, radius));
 
             final var p = new Particle(position, Vector2.ZERO, Vector2.ZERO, radius, mass);
@@ -141,29 +153,31 @@ public enum SandInitialization {
     /**
      * Generate the box of the system
      *
+     * @implNote The base is at Y = PORTAL, so the portal is aligned with Y = 0
+     *
      * @param simulation the simulation to populate
      */
     private static void box(final SandSimulation simulation) {
         final var w = WIDTH;
+        final var base = PORTAL;
         final var h = HEIGHT;
-        final var a = simulation.aperture();
         final var osc = AMPLITUD;
         // Bottom walls length
-        final var bl = (w - a) / 2;
+        final var bl = (w - simulation.aperture()) / 2;
 
         final Function<Double, Double[]> vibration = (t) -> new Double[] {
                 /* X(t) */
-                osc * Math.sin(simulation.omega() * t),
+                base + osc * Math.sin(simulation.omega() * t),
                 /* X'(t) = V(t) */
                 osc * simulation.omega() * Math.cos(simulation.omega() * t),
         };
 
         simulation.box().addAll(List.of(
-                new Wall(Orientation.HOR, Vector2.ZERO, new Vector2(bl, 0), vibration),
-                new Wall(Orientation.HOR, new Vector2(bl + a, 0), new Vector2(w, 0), vibration),
-                new Wall(Orientation.VER, new Vector2(w, -osc), new Vector2(w, h)),
-                new Wall(Orientation.HOR, new Vector2(w, h), new Vector2(0, h)),
-                new Wall(Orientation.VER, new Vector2(0, h), new Vector2(0, -osc))));
+                new Wall(Orientation.HOR, new Vector2(0, base), new Vector2(bl, base), vibration),
+                new Wall(Orientation.HOR, new Vector2(w - bl, base), new Vector2(w, base), vibration),
+                new Wall(Orientation.VER, new Vector2(w, base - osc), new Vector2(w, h + base)),
+                new Wall(Orientation.HOR, new Vector2(w, h + base), new Vector2(0, h + base)),
+                new Wall(Orientation.VER, new Vector2(0, h + base), new Vector2(0, base))));
     }
 
     /**
@@ -172,7 +186,7 @@ public enum SandInitialization {
      * @param simulation the simulation to populate
      */
     private static void portal(final SandSimulation simulation) {
-        simulation.portals().add(new Portal(Orientation.HOR, PORTAL));
+        simulation.portals().add(new Portal(Orientation.HOR, 0));
     }
 
     /**
