@@ -6,7 +6,7 @@ package org.sims.interfaces;
  * Most of the algorithm logic should NOT be here.
  * Engine is responsible for controlling the iteration
  * speed, generating the Steps, and invoking the
- * integrator as needed.
+ * simulation methods as needed.
  *
  * They may know the entity type, but it isn't required.
  */

@@ -12,10 +12,11 @@ import java.util.*;
  * to add a static build() method that creates all the data,
  * and a record Force() implementing ForceCalculator<E>.
  *
- * @param <E> the type of the entities in the simulation
- * @param <S> the type of steps the simulation produces
+ * @param <E> the type of the entities in the simulation.
+ * @param <D> Additional data the force might need.
+ * @param <S> the type of steps the simulation produces.
  */
-public interface Simulation<E, S extends Step> {
+public interface Simulation<E, D, S extends Step> {
     /**
      * The number of steps in the simulation
      *
@@ -35,7 +36,7 @@ public interface Simulation<E, S extends Step> {
      *
      * @return The integrator
      */
-    Integrator<E> integrator();
+    Integrator<E, ? extends D> integrator();
 
     /**
      * Save the simulation setup to a writer

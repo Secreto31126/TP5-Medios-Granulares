@@ -1,8 +1,6 @@
 package org.sims.models;
 
-import java.util.List;
 import java.util.Locale;
-import java.util.concurrent.atomic.AtomicLong;
 
 import org.sims.interfaces.*;
 
@@ -14,9 +12,8 @@ import org.sims.interfaces.*;
  * The events counter tracks the number of collision events involving this
  * particle.
  */
-public record Particle(long id, Vector2 position, Vector2 velocity, Vector2 acceleration, double radius,
-        AtomicLong events)
-        implements Collideable<Particle> {
+public record Particle(long id, Vector2 position, Vector2 velocity, Vector2 acceleration, double radius, double mass)
+        implements Interactive<Particle> {
     private static long SERIAL = 0L;
 
     /**
@@ -26,9 +23,10 @@ public record Particle(long id, Vector2 position, Vector2 velocity, Vector2 acce
      * @param velocity     The initial velocity
      * @param acceleration The initial acceleration
      * @param radius       The radius of the particle
+     * @param mass         The mass of the particle
      */
-    public Particle(final Vector2 position, final Vector2 velocity, final Vector2 acceleration, final double radius) {
-        this(SERIAL++, position, velocity, acceleration, radius, new AtomicLong(0L));
+    public Particle(final Vector2 position, final Vector2 velocity, final Vector2 acceleration, final double radius, final double mass) {
+        this(SERIAL++, position, velocity, acceleration, radius, mass);
     }
 
     /**
@@ -43,27 +41,27 @@ public record Particle(long id, Vector2 position, Vector2 velocity, Vector2 acce
      * @param acceleration The new acceleration
      */
     public Particle(final Particle p, final Vector2 position, final Vector2 velocity, final Vector2 acceleration) {
-        this(p.id, position, velocity, acceleration, p.radius, p.events);
+        this(p.id, position, velocity, acceleration, p.radius, p.mass);
     }
 
     /**
      * Generates a ghost particle at a given position and radius.
      *
      * @apiNote The ghost particle has id zero (not counted towards SERIAL),
-     *          zero velocity, zero acceleration, radius zero, and events is null.
+     *          zero velocity, zero acceleration and mass zero.
      *
      * @param position The position of the ghost particle
      * @param radius   The radius of the ghost particle
      */
-    public Particle(final Vector2 position, double radius) {
-        this(0, position, Vector2.ZERO, Vector2.ZERO, radius, null);
+    public Particle(final Vector2 position, final double radius) {
+        this(0, position, Vector2.ZERO, Vector2.ZERO, radius, 0);
     }
 
     /**
      * Generates a ghost particle at a given position.
      *
      * @apiNote The ghost particle has id zero (not counted towards SERIAL),
-     *          zero velocity, zero acceleration, radius zero, and events is null.
+     *          zero velocity, zero acceleration, radius zero, and mass zero.
      *
      * @param position The position of the ghost particle
      */
@@ -71,64 +69,28 @@ public record Particle(long id, Vector2 position, Vector2 velocity, Vector2 acce
         this(position, 0.0);
     }
 
-    /**
-     * @apiNote Returns Double.POSITIVE_INFINITY if there is no collision.
-     */
     @Override
-    public double collisionTime(final Particle p) {
-        if (p == this) {
-            return Double.POSITIVE_INFINITY;
+    public double overlap(final Particle c) {
+        if (this.equals(c)) {
+            return 0.0;
         }
 
-        final var rvel = p.velocity.subtract(this.velocity);
-        final var rpos = p.position.subtract(this.position);
-
-        final var vel_pos = rvel.dot(rpos);
-
-        if (vel_pos >= -1e-14) {
-            return Double.POSITIVE_INFINITY;
-        }
-
-        final var vel_vel = rvel.dot(rvel);
-
-        if (-1e-14 < vel_vel && vel_vel < 1e-14) {
-            return Double.POSITIVE_INFINITY;
-        }
-
-        final var pos_pos = rpos.dot(rpos);
-        final var sigma = this.radius + p.radius;
-
-        final var d = vel_pos * vel_pos - vel_vel * (pos_pos - sigma * sigma);
-
-        if (d < 1e-14) {
-            return Double.POSITIVE_INFINITY;
-        }
-
-        final var t = -(vel_pos + Math.sqrt(d)) / vel_vel;
-
-        if (t < 1e-14) {
-            return Double.POSITIVE_INFINITY;
-        }
-
-        return t;
+        return (this.radius + c.radius) - this.position.subtract(c.position).norm();
     }
 
     @Override
-    public List<Particle> collide(final Particle p) {
-        this.events().incrementAndGet();
-        p.events().incrementAndGet();
+    public Vector2 position(final Particle i) {
+        return this.position.subtract(i.position);
+    }
 
-        final var rvel = p.velocity.subtract(this.velocity);
-        final var rpos = p.position.subtract(this.position);
+    @Override
+    public Vector2 velocity(final Particle i) {
+        return this.velocity.subtract(i.velocity);
+    }
 
-        final var vel_pos = rvel.dot(rpos);
-        final var dist = this.radius + p.radius;
-
-        final var impulse = (2 * vel_pos) / (2 * dist);
-        final var j = rpos.mult(impulse).div(dist);
-
-        return List.of(this.velocity(this.velocity.add(j)),
-                p.velocity(p.velocity().subtract(j)));
+    @Override
+    public Vector2 normal(final Particle i) {
+        return this.position(i).normalize();
     }
 
     /**
@@ -175,7 +137,7 @@ public record Particle(long id, Vector2 position, Vector2 velocity, Vector2 acce
     }
 
     @Override
-    public final boolean equals(Object obj) {
+    public final boolean equals(final Object obj) {
         if (this == obj)
             return true;
 

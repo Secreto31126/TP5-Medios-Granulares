@@ -2,10 +2,11 @@ package org.sims.sand;
 
 import java.util.*;
 
-import org.sims.interfaces.Engine;
+import org.sims.interfaces.*;
 import org.sims.models.*;
+import org.sims.neighbours.*;
 
-public record SandEngine(SandSimulation simulation) implements Engine<SandStep> {
+public record SandEngine(SandSimulation simulation, CIM cim) implements Engine<SandStep> {
     @Override
     public SandStep initial() {
         return new SandStep(0, simulation.entities(), simulation.box());
@@ -19,6 +20,7 @@ public record SandEngine(SandSimulation simulation) implements Engine<SandStep> 
 
             private List<Particle> particles = simulation.entities();
             private List<Wall> walls = simulation.box();
+            private List<Portal> portals = simulation.portals();
 
             @Override
             public boolean hasNext() {
@@ -27,11 +29,12 @@ public record SandEngine(SandSimulation simulation) implements Engine<SandStep> 
 
             @Override
             public SandStep next() {
-                particles = simulation.integrator().step(particles);
+                particles = simulation.integrator().step(particles, new SandForce.Data(cim, walls));
+                particles = simulation.teleport().apply(particles, portals, cim);
 
-                time += SandSimulation.DT;
                 walls = walls.stream().map(w -> w.update(time)).toList();
 
+                time += simulation.dt();
                 return new SandStep(++current, particles, walls);
             }
         };
@@ -39,5 +42,6 @@ public record SandEngine(SandSimulation simulation) implements Engine<SandStep> 
 
     @Override
     public void close() throws Exception {
+        cim.close();
     }
 }

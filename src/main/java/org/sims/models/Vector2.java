@@ -57,8 +57,25 @@ public record Vector2(double x, double y) {
         return Math.sqrt(this.norm2());
     }
 
+    public Vector2 normalize() {
+        return this.div(this.norm());
+    }
+
     public Vector2 hadamard(final Vector2 v) {
         return new Vector2(x * v.x, y * v.y);
+    }
+
+    /**
+     * @apiNote Rotate the vector 90 degrees counter-clockwise
+     */
+    public Vector2 rotate() {
+        return new Vector2(-y, x);
+    }
+
+    public Vector2 rotate(final double angle) {
+        final var sin = Math.sin(angle);
+        final var cos = Math.cos(angle);
+        return new Vector2(cos - sin, sin + cos).hadamard(this);
     }
 
     @Override

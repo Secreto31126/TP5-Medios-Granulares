@@ -6,14 +6,23 @@ import java.util.concurrent.*;
 import org.sims.interfaces.*;
 import org.sims.models.*;
 
-public record Beeman(double dt, double dt2, Force<Particle> force, Map<Particle, Vector2> memory)
-        implements Integrator<Particle> {
-    public Beeman(final Collection<Particle> particles, double dt, Force<Particle> force) {
-        this(dt, dt * dt, force, new ConcurrentHashMap<>(force.apply(Beeman.prev(particles, dt))));
+public record Beeman<D>(double dt, double dt2, Force<Particle, D> force, Map<Particle, Vector2> memory)
+        implements Integrator<Particle, D> {
+    public Beeman(final double dt, final Force<Particle, D> force, Map<Particle, Vector2> memory) {
+        this(dt, dt * dt, force, memory);
+    }
+
+    public Beeman(final double dt, final Force<Particle, D> force) {
+        this(dt, force, new ConcurrentHashMap<>());
     }
 
     @Override
-    public List<Particle> step(final Collection<Particle> particles) {
+    public void initialize(final Collection<Particle> particles, final D data) {
+        memory.putAll(force.apply(Beeman.prev(particles, this.dt), data));
+    }
+
+    @Override
+    public List<Particle> step(final Collection<Particle> particles, D data) {
         final var prediction = particles.parallelStream().map(p -> {
             final var predicted_pos = p.position()
                     .add(p.velocity().mult(dt))
@@ -27,7 +36,7 @@ public record Beeman(double dt, double dt2, Force<Particle> force, Map<Particle,
             return new Particle(p, predicted_pos, predicted_vel, p.acceleration());
         }).toList();
 
-        final var accs = force.apply(prediction);
+        final var accs = force.apply(prediction, data);
 
         return particles.parallelStream().map(p -> {
             // Dupped code :/

@@ -1,9 +1,8 @@
 package org.sims;
 
-import java.util.List;
+import java.util.*;
 
-import org.sims.sand.SandEngine;
-import org.sims.sand.SandSimulation;
+import org.sims.sand.*;
 
 import me.tongfei.progressbar.ProgressBar;
 
@@ -14,15 +13,16 @@ public class Main {
         usage(args);
 
         final var steps = Long.parseLong(args[0]);
-        final var omega = Double.parseDouble(args[1]);
+        final var aperture = Double.parseDouble(args[1]);
+        final var omega = Double.parseDouble(args[2]);
 
-        final var simulation = SandSimulation.build(steps, 200, omega);
+        final var simulation = SandSimulation.build(steps, 200, aperture, omega);
 
         final var pbs = new ProgressBar("Vibrating", simulation.steps());
         final var pbw = new ProgressBar("Writting", simulation.steps() / SAVE_INTERVAL + 1);
 
         final var onStep = new Orchestrator.SkipSteps(SAVE_INTERVAL, pbs::step);
-        try (pbw; pbs; final var engine = new SandEngine(simulation)) {
+        try (pbw; pbs; final var engine = new SandEngine(simulation, SandInitialization.cim())) {
             new Orchestrator(simulation, engine, List.of("particles", "walls")).start(onStep, pbw::step);
         }
     }
@@ -31,6 +31,7 @@ public class Main {
         if (args.length < 2) {
             System.err.println("Usage: java -jar tp5.jar <steps> <omega>");
             System.err.println("\t<steps>: The number of steps to simulate");
+            System.err.println("\t<aperture>: The aperture of the box");
             System.err.println("\t<omega>: The vibration frequency");
             System.exit(1);
         }

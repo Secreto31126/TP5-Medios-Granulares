@@ -14,7 +14,7 @@ import org.sims.interfaces.*;
  * @param engine     the engine to use
  * @param outputs    the output directories
  */
-public record Orchestrator(Simulation<?, ?> simulation, Engine<?> engine, List<String> outputs) {
+public record Orchestrator(Simulation<?, ?, ?> simulation, Engine<?> engine, List<String> outputs) {
     /**
      * Start the simulation.
      *

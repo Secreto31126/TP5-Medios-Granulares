@@ -17,9 +17,18 @@ import org.sims.models.Particle;
  * the entities' memories as deemed necesary by the
  * algorithm.
  *
- * @param <E> the type of entities the integrator works with.
+ * @param <E> the type of entities the integrator works with.}
+ * @param <D> Additional data the force might need.
  */
-public interface Integrator<E> extends Named {
+public interface Integrator<E, D> extends Named {
+    /**
+     * Initialize the integrator based on the particles
+     *
+     * @param particles the particles being simulated
+     * @param data      additional data the force might need
+     */
+    void initialize(final Collection<Particle> particles, final D data);
+
     /**
      * Advance the simulation by one time step
      *
@@ -27,36 +36,26 @@ public interface Integrator<E> extends Named {
      *           NOR the entities in it directly.
      *
      * @param entities the entities to move
+     * @param data     additional data the force might need
      * @return the moved entities
      */
-    List<E> step(final Collection<E> entities);
-
-    /**
-     * Optional method to gear up the integrator
-     * if it needs to initialize some memory
-     * based on the simulation data.
-     *
-     * @param k Spring constant
-     * @param gamma TODO: Idk
-     * @param mass Mass of the particle
-     * @param particles The particles being simulated
-     */
-    default void gearUp(final double k, final double gamma, final double mass, final Collection<Particle> particles) {}
+    List<E> step(final Collection<E> entities, final D data);
 
     /**
      * A constructor for integrators
      *
-     * @param <E> the type of entities the integrator works with
+     * @param <E> the type of entities the integrator works with.
+     * @param <D> Additional data the integrator might need.
      */
-    public interface Constructor<E> {
+    public interface Constructor<E, D> {
         /**
          * Create an integrator instance
          *
          * @param entities the entities to integrate
-         * @param dt    the time step
-         * @param force the force calculator
+         * @param dt       the time step
+         * @param force    the force calculator
          * @return the integrator instance
          */
-        Integrator<E> get(final Collection<E> entities, final double dt, final Force<E> force);
+        Integrator<E, D> get(final double dt, final Force<E, ? extends D> force);
     }
 }

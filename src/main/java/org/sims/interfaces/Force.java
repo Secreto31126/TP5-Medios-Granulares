@@ -19,6 +19,7 @@ import org.sims.models.*;
  *           NOR the entities in it directly.
  *
  * @param <E> The type of entities the force works with.
+ * @param <D> Additional data the force might need.
  */
-public interface Force<E> extends Function<Collection<E>, Map<E, Vector2>> {
+public interface Force<E, D> extends BiFunction<Collection<E>, D, Map<E, Vector2>> {
 }

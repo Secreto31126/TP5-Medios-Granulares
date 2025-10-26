@@ -14,7 +14,7 @@ public record CIM(Mapping mapping, double Rc, ExecutorService executor) implemen
      * @param Rc     The interaction radius
      */
     public CIM(final double width, final double height, final double Rc) {
-        this(new Mapping(width, height, Rc), Rc, Executors.newFixedThreadPool(8));
+        this(new Mapping(width, height, Rc), Rc, Executors.newFixedThreadPool(6));
     }
 
     /**
@@ -25,10 +25,19 @@ public record CIM(Mapping mapping, double Rc, ExecutorService executor) implemen
     }
 
     /**
+     * Add a particle to the mapping
+     *
+     * @param p Particle to add
+     */
+    public void add(final Particle p) {
+        mapping.add(p);
+    }
+
+    /**
      * Evaluates the interaction between particles in a simulation box.
      *
      * @apiNote Mappings are reset before evaluation.
-     * @apiNote Particles are neighbours to themselves.
+     * @apiNote Particles are NOT neighbours to themselves.
      *
      * @param particles List of particles to evaluate
      * @return A map where each key is a particle and the value is a list of
@@ -43,7 +52,6 @@ public record CIM(Mapping mapping, double Rc, ExecutorService executor) implemen
             final var coordinates = mapping.add(p);
             final var neighbours = new LinkedList<Particle>();
 
-            neighbours.add(p);
             result.put(p, neighbours);
             tasks.add(Executors.callable(new Task(p, result, Rc, mapping, coordinates)));
         }
@@ -72,7 +80,7 @@ public record CIM(Mapping mapping, double Rc, ExecutorService executor) implemen
     public Particle evaluate(final Particle p) {
         final var pos = mapping.getCoordinates(p);
 
-        for (var coord : Mapping.longList(pos)) {
+        for (var coord : mapping.longList(pos)) {
             final var quadrant = mapping.matrix().get((int) coord.x(), (int) coord.y());
             for (final var other : quadrant) {
                 if (p.id() != other.id() && CIM.distance(p, other) < Rc) {
