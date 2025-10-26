@@ -57,18 +57,6 @@ public record Particle(long id, Vector2 position, Vector2 velocity, Vector2 acce
         this(0, position, Vector2.ZERO, Vector2.ZERO, radius, 0);
     }
 
-    /**
-     * Generates a ghost particle at a given position.
-     *
-     * @apiNote The ghost particle has id zero (not counted towards SERIAL),
-     *          zero velocity, zero acceleration, radius zero, and mass zero.
-     *
-     * @param position The position of the ghost particle
-     */
-    public Particle(final Vector2 position) {
-        this(position, 0.0);
-    }
-
     @Override
     public double overlap(final Particle c) {
         if (this.equals(c)) {
