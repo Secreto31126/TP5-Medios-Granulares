@@ -11,7 +11,7 @@ import org.sims.neighbours.*;
 record SandForce() implements Force<Particle, SandForce.Data> {
     public static final double Kn = 250;
     public static final double GAMMA = 1;
-    public static final double MU = 0.25;
+    public static final double MU = 0.7;
 
     @Override
     public Map<Particle, Vector2> apply(
