@@ -31,12 +31,7 @@ public record SandEngine(SandSimulation simulation, CIM cim, Integrator<Particle
 
             @Override
             public boolean hasNext() {
-                final var hasNext = current < simulation.steps();
-                if (!hasNext) {
-                    cim.close();
-                }
-
-                return hasNext;
+                return current < simulation.steps();
             }
 
             @Override
