@@ -93,39 +93,6 @@ public record Particle(long id, Vector2 position, Vector2 velocity, Vector2 acce
         return this.position(i).normalize();
     }
 
-    /**
-     * Create a new particle with the same parameters as this, but with
-     * a new position.
-     *
-     * @param newPosition The new position
-     * @return The new particle
-     */
-    public Particle position(final Vector2 newPosition) {
-        return new Particle(this, newPosition, this.velocity, this.acceleration);
-    }
-
-    /**
-     * Create a new particle with the same parameters as this, but with
-     * a new velocity.
-     *
-     * @param newVelocity The new velocity
-     * @return The new particle
-     */
-    public Particle velocity(final Vector2 newVelocity) {
-        return new Particle(this, this.position, newVelocity, this.acceleration);
-    }
-
-    /**
-     * Create a new particle with the same parameters as this, but with
-     * a new acceleration.
-     *
-     * @param newAcceleration The new acceleration
-     * @return The new particle
-     */
-    public Particle acceleration(final Vector2 newAcceleration) {
-        return new Particle(this, this.position, this.velocity, newAcceleration);
-    }
-
     @Override
     public String name() {
         return "P";
