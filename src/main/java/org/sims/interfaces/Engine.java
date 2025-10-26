@@ -9,6 +9,15 @@ package org.sims.interfaces;
  * simulation methods as needed.
  *
  * They may know the entity type, but it isn't required.
+ *
+ * @apiNote
+ * An Engine can only be used once. For multiple runs,
+ * initiate multiple Engine instances, but be aware
+ * that each engine might allocate N threads,
+ * leaving none for others, so do this cautiously
+ * if running them parallely.
+ *
+ * @param <S> the type of steps the engine produces.
  */
 public interface Engine<S extends Step> extends Iterable<S>, AutoCloseable {
     /**

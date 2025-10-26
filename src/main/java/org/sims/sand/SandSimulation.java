@@ -7,9 +7,9 @@ import org.sims.integrals.*;
 import org.sims.interfaces.*;
 import org.sims.models.*;
 
-public record SandSimulation(long steps, long n, double omega, double aperture,
+public record SandSimulation(long steps, long n, double aperture, double omega,
         List<Particle> entities, List<Wall> box, List<Portal> portals,
-        Integrator<Particle, SandForce.Data> integrator, SandRespawn teleport)
+        SandRespawn teleport)
         implements Simulation<Particle, SandForce.Data, SandStep> {
     private static final double DT = 1e-4;
 
@@ -22,17 +22,11 @@ public record SandSimulation(long steps, long n, double omega, double aperture,
      * @param omega    the vibration frequency
      * @return the built simulation
      */
-    public static SandSimulation build(final long steps, final int n, final double aperture, final double omega) {
-        final var force = new SandForce();
-        final var integrator = new Beeman<SandForce.Data>(DT, force);
-
-        final var simulation = new SandSimulation(steps, n, omega, aperture,
+    public SandSimulation(final long steps, final int n, final double aperture, final double omega) {
+        this(steps, n, aperture, omega,
                 new ArrayList<Particle>(n), new ArrayList<Wall>(), new ArrayList<Portal>(),
-                integrator, SandInitialization::respawn);
-
-        SandInitialization.RANDOM.initialize(simulation);
-
-        return simulation;
+                SandInitialization::respawn);
+        SandInitialization.RANDOM.initialize(this);
     }
 
     /**
@@ -42,6 +36,12 @@ public record SandSimulation(long steps, long n, double omega, double aperture,
      */
     public double dt() {
         return DT;
+    }
+
+    public Integrator<Particle, SandForce.Data> integrator(final SandForce.Data data) {
+        final var integrator = new Beeman<>(DT, new SandForce());
+        integrator.initialize(entities, data);
+        return integrator;
     }
 
     @Override

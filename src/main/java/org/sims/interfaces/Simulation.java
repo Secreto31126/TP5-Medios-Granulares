@@ -34,9 +34,10 @@ public interface Simulation<E, D, S extends Step> {
     /**
      * The integrator used in the simulation
      *
-     * @return The integrator
+     * @param data Additional data the integrator might need to setup.
+     * @return The new integrator instance
      */
-    Integrator<E, ? extends D> integrator();
+    Integrator<E, ? extends D> integrator(D data);
 
     /**
      * Save the simulation setup to a writer

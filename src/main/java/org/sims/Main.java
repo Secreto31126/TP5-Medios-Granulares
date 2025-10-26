@@ -16,13 +16,13 @@ public class Main {
         final var aperture = Double.parseDouble(args[1]);
         final var omega = Double.parseDouble(args[2]);
 
-        final var simulation = SandSimulation.build(steps, 200, aperture, omega);
+        final var simulation = new SandSimulation(steps, 200, aperture, omega);
 
         final var pbs = new ProgressBar("Vibrating", simulation.steps());
         final var pbw = new ProgressBar("Writting", simulation.steps() / SAVE_INTERVAL + 1);
 
         final var onStep = new Orchestrator.SkipSteps(SAVE_INTERVAL, pbs::step);
-        try (pbw; pbs; final var engine = new SandEngine(simulation, SandInitialization.cim())) {
+        try (pbw; pbs; final var engine = SandEngine.build(simulation)) {
             new Orchestrator(simulation, engine, List.of("particles", "walls")).start(onStep, pbw::step);
         }
     }
