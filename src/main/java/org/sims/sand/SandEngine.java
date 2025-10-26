@@ -29,12 +29,13 @@ public record SandEngine(SandSimulation simulation, CIM cim) implements Engine<S
 
             @Override
             public SandStep next() {
+                time += simulation.dt();
+
                 particles = simulation.integrator().step(particles, new SandForce.Data(cim, walls));
                 particles = simulation.teleport().apply(particles, portals, cim);
 
                 walls = walls.stream().map(w -> w.update(time)).toList();
 
-                time += simulation.dt();
                 return new SandStep(++current, particles, walls);
             }
         };
