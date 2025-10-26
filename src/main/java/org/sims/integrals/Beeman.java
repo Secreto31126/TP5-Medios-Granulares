@@ -36,7 +36,7 @@ public record Beeman<D>(double dt, double dt2, Force<Particle, D> force, Map<Par
             return new Particle(p, predicted_pos, predicted_vel, p.acceleration());
         }).toList();
 
-        final var accs = force.apply(prediction, data);
+        final var forces = force.apply(prediction, data);
 
         return particles.parallelStream().map(p -> {
             // Dupped code :/
@@ -45,7 +45,7 @@ public record Beeman<D>(double dt, double dt2, Force<Particle, D> force, Map<Par
                     .add(p.acceleration().mult((2.0 / 3.0) * dt2))
                     .subtract(memory.get(p).mult((1.0 / 6.0) * dt2));
 
-            final var future_acc = accs.get(p);
+            final var future_acc = forces.get(p).div(p.mass());
 
             final var future_vel = p.velocity()
                     .add(future_acc.mult((1.0 / 3.0) * dt))
