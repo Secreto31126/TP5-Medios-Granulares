@@ -17,12 +17,12 @@ record SandForce() implements Force<Particle, SandForce.Data> {
     public Map<Particle, Vector2> apply(
             final Collection<Particle> particles,
             final Data data) {
-        final var neighbours = data.cim().evaluate(particles);
+        // final var neighbours = data.cim().evaluate(particles);
 
         return particles.parallelStream()
                 .collect(Collectors.toMap(Function.identity(), p -> {
                     final var interactives = Stream
-                            .concat(neighbours.get(p).stream(), data.walls().stream())
+                            .concat(particles.stream(), data.walls().stream())
                             .filter(o -> o.overlap(p) > 0)
                             .toList();
 

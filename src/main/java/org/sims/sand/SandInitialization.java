@@ -94,7 +94,7 @@ public enum SandInitialization {
             Vector2 position;
             do {
                 position = uniformVector(p.radius(), w - p.radius(), base + res, base + h - p.radius());
-            } while (superposition(cim, position, p.radius()));
+            } while (superposition(cim, position, p.radius(), particles));
 
             final var new_p = new Particle(p, position, Vector2.ZERO, Vector2.ZERO);
 
@@ -141,7 +141,7 @@ public enum SandInitialization {
             do {
                 radius = RNG.nextDouble(min, max);
                 position = uniformVector(radius, w - radius, base + radius, base + h - radius);
-            } while (i != 0 && superposition(cim, position, radius));
+            } while (i != 0 && superposition(cim, position, radius, simulation.entities()));
 
             final var p = new Particle(position, Vector2.ZERO, Vector2.ZERO, radius, mass);
 
@@ -212,8 +212,8 @@ public enum SandInitialization {
      * @param radius   the radius of the new particle
      * @return true if in supperposition, false otherwise
      */
-    private static boolean superposition(final CIM cim, final Vector2 position, final double radius) {
+    private static boolean superposition(final CIM cim, final Vector2 position, final double radius, final Collection<Particle> all) {
         final var ghost = new Particle(position, radius);
-        return cim.evaluate(ghost) != null;
+        return all.parallelStream().anyMatch(p -> p.overlap(ghost) > 0);
     }
 }
