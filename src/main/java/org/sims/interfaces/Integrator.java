@@ -2,8 +2,6 @@ package org.sims.interfaces;
 
 import java.util.*;
 
-import org.sims.models.Particle;
-
 /**
  * Integrators are the mathematical implementations of the
  * time evolution algorithms, such as Verlet, or Beeman.
@@ -17,18 +15,10 @@ import org.sims.models.Particle;
  * the entities' memories as deemed necesary by the
  * algorithm.
  *
- * @param <E> the type of entities the integrator works with.}
+ * @param <E> the type of entities the integrator works with.
  * @param <D> Additional data the force might need.
  */
 public interface Integrator<E, D> extends Named {
-    /**
-     * Initialize the integrator based on the particles
-     *
-     * @param particles the particles being simulated
-     * @param data      additional data the force might need
-     */
-    void initialize(final Collection<Particle> particles, final D data);
-
     /**
      * Reset a single entity's data
      *
@@ -66,6 +56,6 @@ public interface Integrator<E, D> extends Named {
          * @param force    the force calculator
          * @return the integrator instance
          */
-        Integrator<E, D> get(final double dt, final Force<E, ? extends D> force);
+        Integrator<E, D> get(final Collection<E> particles, final double dt, final Force<E, ? extends D> force, D data);
     }
 }

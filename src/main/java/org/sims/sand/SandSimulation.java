@@ -38,10 +38,9 @@ public record SandSimulation(long steps, long n, double aperture, double omega,
         return DT;
     }
 
+    @Override
     public Integrator<Particle, SandForce.Data> integrator(final SandForce.Data data) {
-        final var integrator = new Beeman<>(DT, new SandForce());
-        integrator.initialize(entities, data);
-        return integrator;
+        return new Beeman<>(entities, DT, new SandForce(), data);
     }
 
     @Override

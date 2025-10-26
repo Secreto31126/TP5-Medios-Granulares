@@ -12,13 +12,8 @@ public record Beeman<D>(double dt, double dt2, Force<Particle, D> force, Map<Par
         this(dt, dt * dt, force, memory);
     }
 
-    public Beeman(final double dt, final Force<Particle, D> force) {
-        this(dt, force, new ConcurrentHashMap<>());
-    }
-
-    @Override
-    public void initialize(final Collection<Particle> particles, final D data) {
-        memory.putAll(force.apply(Beeman.prev(particles, this.dt), data));
+    public Beeman(final Collection<Particle> particles, final double dt, final Force<Particle, D> force, D data) {
+        this(dt, force, new ConcurrentHashMap<>(force.apply(Beeman.prev(particles, dt), data)));
     }
 
     @Override
