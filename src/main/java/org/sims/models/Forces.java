@@ -5,7 +5,7 @@ import java.util.*;
 import org.sims.interfaces.Interactive;
 
 public abstract class Forces {
-    private static final Vector2 EARTH_GRAVITY_VECTOR = new Vector2(0, 10);
+    private static final Vector2 EARTH_GRAVITY_VECTOR = new Vector2(0, -10);
 
     /**
      * Get the earth gravity force
