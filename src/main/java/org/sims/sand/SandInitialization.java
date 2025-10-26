@@ -148,13 +148,13 @@ public enum SandInitialization {
         final var a = simulation.aperture();
         final var osc = AMPLITUD;
         // Bottom walls length
-        final var bl = (w - AMPLITUD) / 2;
+        final var bl = (w - a) / 2;
 
         final Function<Double, Double[]> vibration = (t) -> new Double[] {
                 /* X(t) */
-                AMPLITUD * Math.sin(simulation.omega() * t),
+                osc * Math.sin(simulation.omega() * t),
                 /* X'(t) = V(t) */
-                AMPLITUD * simulation.omega() * Math.cos(simulation.omega() * t),
+                osc * simulation.omega() * Math.cos(simulation.omega() * t),
         };
 
         simulation.box().addAll(List.of(
