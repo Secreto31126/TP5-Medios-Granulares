@@ -3,6 +3,7 @@ from typing import Callable
 import time
 
 import matplotlib.pyplot as plt
+from matplotlib.lines import Line2D
 from matplotlib.patches import Circle
 from matplotlib.animation import FuncAnimation
 
@@ -23,37 +24,39 @@ def main():
         _steps, _aperture, _omega = [*map(float, f.readline().strip().split())]
         _steps = int(_steps)
 
-    with open(resources.path("walls", "0.txt")) as f:
-        walls = [Wall([*map(float, line.strip().split())]) for line in f]
-
-    executor = Executor(frames.next_particles, range(frames.count()))
+    executor = Executor(frames.next_all, range(frames.count()))
 
     fig, ax = plt.subplots() # pyright: ignore[reportUnknownMemberType]
     ax.set_aspect('equal', adjustable="box")
 
-    for wall in walls:
-        ax.plot([wall.start.x, wall.end.x], [wall.start.y, wall.end.y], color="black") # pyright: ignore[reportUnknownMemberType]
+    lines: list[Line2D] = []
+    for wall in frames.next_walls(0)[1]:
+        line, = ax.plot([wall.start.x, wall.end.x], [wall.start.y, wall.end.y], color="black") # pyright: ignore[reportUnknownMemberType]
+        lines.append(line)
 
     circles: list[Circle] = []
     for p in frames.next(0)[1]:
         c = Circle(p.position.tuple(), radius=p.radius, color="blue")
+
         ax.add_patch(c)
         circles.append(c)
 
-    def update(particles: list[Particle]):
+    def update(entities: tuple[list[Particle], list[Wall]]):
         global abar
 
         if abar is not None and abar.n % abar.total == 0:
             abar.reset()
 
-        for i, particle in enumerate(particles):
+        for i, particle in enumerate(entities[0]):
             circles[i].center = particle.position.tuple()
-            circles[i].radius = particle.radius
+
+        for i, wall in enumerate(entities[1]):
+            lines[i].set_data([wall.start.x, wall.end.x], [wall.start.y, wall.end.y])
 
         if abar is not None:
             abar.update()
 
-        return circles
+        return circles + lines
 
     ani = FuncAnimation( # pyright: ignore[reportUnusedVariable]
         fig,

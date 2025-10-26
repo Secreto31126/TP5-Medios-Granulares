@@ -37,6 +37,12 @@ def next_walls(f: int):
     """
     return next(f, 'walls', Wall)
 
+def next_all(f: int):
+    """
+    Reads the input files for a given frame and returns both particles and walls.
+    """
+    return f, (next_particles(f)[1], next_walls(f)[1])
+
 @cache
 def count(dir: str = 'particles'):
     """
