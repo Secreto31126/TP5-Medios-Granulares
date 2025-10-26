@@ -79,18 +79,18 @@ public record Particle(long id, Vector2 position, Vector2 velocity, Vector2 acce
     }
 
     @Override
-    public Vector2 position(final Particle i) {
-        return this.position.subtract(i.position);
+    public Vector2 position(final Particle o) {
+        return o.position.subtract(this.position);
     }
 
     @Override
-    public Vector2 velocity(final Particle i) {
-        return this.velocity.subtract(i.velocity);
+    public Vector2 velocity(final Particle o) {
+        return o.velocity.subtract(this.velocity);
     }
 
     @Override
-    public Vector2 normal(final Particle i) {
-        return this.position(i).normalize();
+    public Vector2 normal(final Particle o) {
+        return o.position(this).normalize();
     }
 
     @Override
