@@ -43,6 +43,10 @@ public record Matrix<T>(int rows, int cols, T[][]data) implements Iterable<T> {
         return data[row][col];
     }
 
+    public T get(Vector2 coord) {
+        return this.get((int) coord.x(), (int) coord.y());
+    }
+
     public void set(int row, int col, T value) {
         data[row][col] = value;
     }
