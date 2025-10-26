@@ -70,18 +70,21 @@ public record Wall(long id, Orientation orientation, Vector2 a, Vector2 b,
     }
 
     @Override
-    public Vector2 position(final Particle i) {
-        return this.orientation.normal().mult(this.orientation.perpendicular(i.position()));
+    public Vector2 position(final Particle p) {
+        return this.orientation.tangencial()
+                .mult(this.orientation.constant(a) - this.orientation.perpendicular(p.position()) - p.radius());
     }
 
     @Override
-    public Vector2 velocity(final Particle i) {
-        return this.orientation.normal().mult(this.orientation.perpendicular(i.velocity()));
+    public Vector2 velocity(final Particle p) {
+        return this.orientation.tangencial()
+                .mult(this.velocity - this.orientation.perpendicular(p.velocity()));
     }
 
     @Override
-    public Vector2 normal(final Particle i) {
-        return this.orientation.normal();
+    public Vector2 normal(final Particle p) {
+        final var sign = Math.signum(this.orientation.constant(a) - this.orientation.perpendicular(p.position()));
+        return this.orientation.normal().mult(sign);
     }
 
     /**
