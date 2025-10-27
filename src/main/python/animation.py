@@ -79,7 +79,7 @@ def main():
         filename = resources.path(f"{int(time.time())}.mp4")
         with tqdm(total=frames.count()) as sbar:
             callback: Callable[[int, int], bool | None] = lambda _i, _n: sbar.update()
-            ani.save(filename, writer='ffmpeg', fps=60, dpi=300, progress_callback=callback)
+            ani.save(filename, writer='ffmpeg', fps=20, dpi=300, progress_callback=callback)
 
         print(f"Animation saved at {filename}")
 

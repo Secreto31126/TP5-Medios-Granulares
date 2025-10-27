@@ -7,7 +7,8 @@ import org.sims.sand.*;
 import me.tongfei.progressbar.ProgressBar;
 
 public class Main {
-    private static final long SAVE_INTERVAL = 100L;
+    // (500 * 1e-4) ** -1 = 20fps = 50ms (dt2)
+    private static final long SAVE_INTERVAL = 500L;
 
     public static void main(String[] args) throws Exception {
         usage(args);
