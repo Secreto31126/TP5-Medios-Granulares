@@ -24,7 +24,7 @@ public class Main {
 
         final var onStep = new Orchestrator.SkipSteps(SAVE_INTERVAL, pbs::step);
         try (pbl; pbw; pbs; final var engine = SandEngine.build(simulation)) {
-            new Orchestrator(simulation, engine, List.of("particles", "walls"), List.of("exited"))
+            new Orchestrator(simulation, engine, List.of("particles", "walls"), List.of("exited.txt"))
                     .start(onStep, pbw::step, pbl::step);
         }
     }

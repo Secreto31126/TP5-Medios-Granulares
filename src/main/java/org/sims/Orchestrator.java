@@ -127,7 +127,7 @@ public record Orchestrator(Simulation<?, ?, ?> simulation, Engine<?> engine, Lis
             final var writers = new ArrayList<Writer>(outputs.size());
             try {
                 for (final var filename : outputs) {
-                    writers.add(Resources.writer(filename));
+                    writers.add(Resources.appender(filename));
                 }
 
                 step.log(writers);

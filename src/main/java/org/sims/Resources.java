@@ -64,6 +64,17 @@ public abstract class Resources {
     }
 
     /**
+     * Get a buffered appender for a path
+     *
+     * @param path the path components
+     * @return the buffered appender
+     * @throws IOException if the file cannot be opened
+     */
+    public static BufferedWriter appender(String... path) throws IOException {
+        return new BufferedWriter(new FileWriter(pathed(path).toFile(), true));
+    }
+
+    /**
      * Get a path from components, using the base path
      *
      * @param path the path components
