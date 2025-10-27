@@ -35,7 +35,7 @@ public record Orchestrator(Simulation<?, ?, ?> simulation, Engine<?> engine, Lis
         }
 
         try (
-                final var animator = Executors.newFixedThreadPool(24);
+                final var animator = Executors.newFixedThreadPool(7);
                 final var logger = Executors.newSingleThreadExecutor()) {
             Orchestrator.save(animator, engine.initial(), 0L, outputs, onWrite);
             engine.forEach(
