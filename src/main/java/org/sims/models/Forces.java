@@ -33,7 +33,7 @@ public abstract class Forces {
             final double Kn,
             final double gamma,
             final double mu) {
-        return inter.parallelStream()
+        return inter.stream()
                 .map(i -> {
                     final var normal = i.normal(p);
                     final var tangent = normal.rotate();

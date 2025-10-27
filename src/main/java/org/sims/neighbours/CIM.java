@@ -49,9 +49,9 @@ public record CIM(Mapping mapping, double Rc, BiFunction<Particle, Particle, Boo
      */
     public Map<Particle, List<Particle>> evaluate(final Collection<Particle> particles) {
         this.reset();
-        final var coords = particles.parallelStream()
+        final var coords = particles.stream()
                 .collect(Collectors.toMap(Function.identity(), this.mapping::add));
-        return coords.entrySet().parallelStream()
+        return coords.entrySet().stream()
                 .collect(Collectors.toConcurrentMap(Map.Entry::getKey, this::interacting));
     }
 
@@ -92,7 +92,7 @@ public record CIM(Mapping mapping, double Rc, BiFunction<Particle, Particle, Boo
      * @return A list of interacting particles
      */
     private List<Particle> interacting(Particle p, List<Vector2> q) {
-        return q.parallelStream()
+        return q.stream()
                 // Get all particles in the listed cells
                 .flatMap(c -> this.mapping.matrix().get(c).stream())
                 // Preserve only interacting particles

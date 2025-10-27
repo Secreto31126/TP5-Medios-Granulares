@@ -18,7 +18,7 @@ public record Gear5<D>(double dt, Force<Particle, D> force, Map<Particle, List<V
             /* a5 = */ 1.0 / 60.0);
 
     public Gear5(final Collection<Particle> particles, final double dt, final Force<Particle, D> force, final D data) {
-        this(dt, force, particles.parallelStream()
+        this(dt, force, particles.stream()
                 .collect(Collectors.toConcurrentMap(Function.identity(), Gear5::initials)));
     }
 
@@ -35,7 +35,7 @@ public record Gear5<D>(double dt, Force<Particle, D> force, Map<Particle, List<V
         final var dt4 = dt3 * dt;
         final var dt5 = dt4 * dt;
 
-        final var moved = particles.parallelStream().map(p -> {
+        final var moved = particles.stream().map(p -> {
             final var pos = p.position()
                     .add(p.velocity().mult(dt1))
                     .add(this.r(p, 2).mult(dt2 / 2.0))
@@ -69,7 +69,7 @@ public record Gear5<D>(double dt, Force<Particle, D> force, Map<Particle, List<V
 
         final var forces = force.apply(moved, data);
 
-        return moved.parallelStream().map(p -> {
+        return moved.stream().map(p -> {
             final var acc = forces.get(p).div(p.mass());
 
             final var d = acc.subtract(this.r(p, 2));

@@ -23,7 +23,7 @@ public record Beeman<D>(double dt, double dt2, Force<Particle, D> force, Map<Par
 
     @Override
     public List<Particle> step(final Collection<Particle> particles, D data) {
-        final var prediction = particles.parallelStream().map(p -> {
+        final var prediction = particles.stream().map(p -> {
             final var predicted_pos = p.position()
                     .add(p.velocity().mult(dt))
                     .add(p.acceleration().mult((2.0 / 3.0) * dt2))
@@ -38,7 +38,7 @@ public record Beeman<D>(double dt, double dt2, Force<Particle, D> force, Map<Par
 
         final var forces = force.apply(prediction, data);
 
-        return particles.parallelStream().map(p -> {
+        return particles.stream().map(p -> {
             // Dupped code :/
             final var future_pos = p.position()
                     .add(p.velocity().mult(dt))
@@ -69,7 +69,7 @@ public record Beeman<D>(double dt, double dt2, Force<Particle, D> force, Map<Par
      * @return The particles at time t - dt
      */
     private static List<Particle> prev(final Collection<Particle> particles, final double dt) {
-        return particles.parallelStream().map(p -> Beeman.before(p, dt)).toList();
+        return particles.stream().map(p -> Beeman.before(p, dt)).toList();
     }
 
     /**
