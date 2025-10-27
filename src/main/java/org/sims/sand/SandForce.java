@@ -20,7 +20,9 @@ record SandForce() implements Force<Particle, SandForce.Data> {
         return particles.parallelStream()
                 .collect(Collectors.toMap(Function.identity(), p -> {
                     final var interactives = Stream
-                            .concat(neighbours.get(p).stream(), data.walls().stream().filter(w -> w.overlap(p) > 0))
+                            .concat(
+                                    neighbours.get(p).stream(),
+                                    data.walls().stream().filter(w -> w.overlap(p) > 0))
                             .toList();
 
                     final var gravity = Forces.gravity(p);
