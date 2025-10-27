@@ -30,7 +30,7 @@ public class Main {
     }
 
     private static void usage(final String[] args) {
-        if (args.length < 2) {
+        if (args.length < 3) {
             System.err.println("Usage: java -jar tp5.jar <steps> <omega>");
             System.err.println("\t<steps>: The number of steps to simulate");
             System.err.println("\t<aperture>: The aperture of the box");
