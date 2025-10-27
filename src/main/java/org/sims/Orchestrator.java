@@ -40,7 +40,8 @@ public record Orchestrator(Simulation<?, ?, ?> simulation, Engine<?> engine, Lis
             Orchestrator.save(animator, engine.initial(), 0L, outputs, onWrite);
             engine.forEach(
                     step -> {
-                        Orchestrator.log(logger, step, logs, onLog);
+                        if (step.hasLogs())
+                            Orchestrator.log(logger, step, logs);
                         onStep.apply(step).ifPresent(idx -> Orchestrator.save(animator, step, idx, outputs, onWrite));
                     });
         }

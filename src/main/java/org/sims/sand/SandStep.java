@@ -34,6 +34,10 @@ public record SandStep(long i, double t, Collection<Particle> particles, Collect
         if (!exited.isEmpty()) {
             writers.get(0).append(String.format(Locale.ROOT, "%+.14f %d\n", t, exited.size()));
         }
+    }
 
+    @Override
+    public boolean hasLogs() {
+        return !exited.isEmpty();
     }
 }

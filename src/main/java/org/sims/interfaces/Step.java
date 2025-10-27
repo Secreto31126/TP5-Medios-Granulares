@@ -30,9 +30,18 @@ public interface Step {
      * @apiNote The method is invoked for every step after saveTo,
      *          and the files must be appended to.
      *
-     * @param writers the writers to log to
+     * @param appenders the appendable writers to log to
      * @throws IOException if an I/O error occurs
      */
-    default void log(final List<Writer> writers) throws IOException {
+    default void log(final List<Writer> appenders) throws IOException {
+    }
+
+    /**
+     * Whether this step has logs to write
+     *
+     * @return true if there are logs to write
+     */
+    default boolean hasLogs() {
+        return false;
     }
 }
