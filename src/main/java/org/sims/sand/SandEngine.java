@@ -52,6 +52,5 @@ public record SandEngine(SandSimulation simulation, CIM cim, Integrator<Particle
 
     @Override
     public void close() throws Exception {
-        cim.close();
     }
 }

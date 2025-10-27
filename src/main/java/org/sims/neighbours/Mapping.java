@@ -25,9 +25,9 @@ record Mapping(Matrix<Queue<Particle>> matrix, double cells_w, double cells_h) {
      * @return The short list of coordinates to check for neighbours
      */
     public List<Vector2> add(final Particle p) {
-        return shortList(coord);
         final var coord = this.getCoordinates(p);
         this.matrix.get((int) coord.x(), (int) coord.y()).add(p);
+        return this.longList(coord);
     }
 
     Vector2 getCoordinates(final Particle p) {

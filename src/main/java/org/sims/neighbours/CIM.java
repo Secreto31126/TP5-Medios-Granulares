@@ -1,27 +1,23 @@
 package org.sims.neighbours;
 
 import java.util.*;
-import java.util.concurrent.*;
+import java.util.function.*;
+import java.util.stream.*;
 
 import org.sims.models.*;
 
-public record CIM(Mapping mapping, double Rc, ExecutorService executor) implements AutoCloseable {
+public record CIM(Mapping mapping, double Rc, BiFunction<Particle, Particle, Boolean> interacting) {
     /**
-     * Default constructor with 8 threads
+     * Default constructor with 6 threads
      *
-     * @param width  The width of the simulation box
-     * @param height The height of the simulation box
-     * @param Rc     The interaction radius
+     * @param width       The width of the simulation box
+     * @param height      The height of the simulation box
+     * @param Rc          The interaction search radius
+     * @param interacting The interaction function between two particles
      */
-    public CIM(final double width, final double height, final double Rc) {
-        this(new Mapping(width, height, Rc), Rc, Executors.newFixedThreadPool(6));
-    }
-
-    /**
-     * Reset the mapping by clearing all quadrants
-     */
-    public void reset() {
-        mapping.matrix().forEach(List::clear);
+    public CIM(final double width, final double height, final double Rc,
+            BiFunction<Particle, Particle, Boolean> interacting) {
+        this(new Mapping(width, height, Rc), Rc, interacting);
     }
 
     /**
@@ -30,105 +26,89 @@ public record CIM(Mapping mapping, double Rc, ExecutorService executor) implemen
      * @param p Particle to add
      */
     public void add(final Particle p) {
-        mapping.add(p);
+        this.mapping.add(p);
     }
 
     /**
-     * Evaluates the interaction between particles in a simulation box.
+     * Reset the mapping
+     */
+    public void reset() {
+        this.mapping.clear();
+    }
+
+    /**
+     * Calculates all the neighbour particles in a simulation box.
      *
      * @apiNote Mappings are reset before evaluation.
-     * @apiNote Particles are NOT neighbours to themselves.
+     *
+     * @implNote The returned map is concurrent.
      *
      * @param particles List of particles to evaluate
      * @return A map where each key is a particle and the value is a list of
      *         particles that interact with it.
      */
     public Map<Particle, List<Particle>> evaluate(final Collection<Particle> particles) {
-        final var tasks = new ArrayList<Callable<Object>>(particles.size());
-        final var result = new ConcurrentHashMap<Particle, List<Particle>>();
-
         this.reset();
-        for (final var p : particles) {
-            final var coordinates = mapping.add(p);
-            final var neighbours = new LinkedList<Particle>();
-
-            result.put(p, neighbours);
-            tasks.add(Executors.callable(new Task(p, result, Rc, mapping, coordinates)));
-        }
-
-        try {
-            executor.invokeAll(tasks);
-        } catch (InterruptedException e) {
-            throw new RuntimeException("Evaluation interrupted", e);
-        }
-
-        return result;
+        final var coords = particles.parallelStream()
+                .collect(Collectors.toMap(Function.identity(), this.mapping::add));
+        return coords.entrySet().parallelStream()
+                .collect(Collectors.toConcurrentMap(Map.Entry::getKey, this::interacting));
     }
 
     /**
-     * Finds any interaction of a single particle in the mapping.
+     * Finds any neighbour of a single particle in the mapping.
      *
      * This method is useful for checking if a newly added particle
      * interacts with any existing particles in the mapping.
+     * The algorithm is slightly faster as it exits on the first match.
      *
      * @apiNote Mappings are NOT populated before evaluation.
-     * @apiNote Particle is NOT neighbour to itself.
      *
      * @param p The particle to evaluate
-     * @return The particle's first found neighbour
+     * @return Whether the particle has any interacting neighbours
      */
-    public Particle evaluate(final Particle p) {
-        final var pos = mapping.getCoordinates(p);
-
-        for (var coord : mapping.longList(pos)) {
-            final var quadrant = mapping.matrix().get((int) coord.x(), (int) coord.y());
-            for (final var other : quadrant) {
-                if (p.id() != other.id() && CIM.distance(p, other) < Rc) {
-                    return other;
-                }
-            }
-        }
-
-        return null;
-    }
-
-    @Override
-    public void close() {
-        executor.close();
-    }
-
-    private static record Task(Particle p, Map<Particle, List<Particle>> result, double Rc,
-            Mapping mapping, List<Vector2> coordinates) implements Runnable {
-        @Override
-        public void run() {
-            for (final var coords : coordinates) {
-                final var quadrant = mapping.matrix().get((int) coords.x(), (int) coords.y());
-
-                for (final var other : quadrant) {
-                    if (p.id() < other.id() && CIM.distance(p, other) < Rc) {
-                        result.compute(p, (_, list) -> {
-                            list.add(other);
-                            return list;
-                        });
-
-                        result.compute(other, (p, list) -> {
-                            list.add(p);
-                            return list;
-                        });
-                    }
-                }
-            }
-        }
+    public boolean evaluate(final Particle p) {
+        return this.mapping.longList(this.mapping.getCoordinates(p)).stream()
+                .flatMap(c -> this.mapping.matrix().get(c).stream())
+                .anyMatch(o -> this.interacting(p, o));
     }
 
     /**
-     * Calculate the distance between two particles considering their radius
+     * Finds all interacting particles for a given entry.
+     *
+     * @param e The entry mapping a particle to its short list of cells
+     * @return A list of interacting particles
+     */
+    private List<Particle> interacting(Map.Entry<Particle, List<Vector2>> e) {
+        return this.interacting(e.getKey(), e.getValue());
+    }
+
+    /**
+     * Finds all interacting particles for a given particle and its short list of
+     * cells.
+     *
+     * @param p The particle to evaluate
+     * @param q The short list of cells to check
+     * @return A list of interacting particles
+     */
+    private List<Particle> interacting(Particle p, List<Vector2> q) {
+        return q.parallelStream()
+                // Get all particles in the listed cells
+                .flatMap(c -> this.mapping.matrix().get(c).stream())
+                // Preserve only interacting particles
+                .filter(o -> this.interacting(p, o))
+                .toList();
+    }
+
+    /**
+     * Checks if two particles are interacting,
+     * based on the provided interaction function.
      *
      * @param a The first particle
      * @param b The second particle
-     * @return The distance between the surfaces of the two particles
+     * @return Whether they are interacting
      */
-    private static double distance(final Particle a, final Particle b) {
-        return a.position().subtract(b.position()).norm() - (a.radius() + b.radius());
+    private boolean interacting(final Particle a, final Particle b) {
+        return this.interacting().apply(a, b);
     }
 }

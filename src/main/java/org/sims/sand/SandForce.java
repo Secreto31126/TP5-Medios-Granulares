@@ -14,16 +14,13 @@ record SandForce() implements Force<Particle, SandForce.Data> {
     public static final double MU = 0.7;
 
     @Override
-    public Map<Particle, Vector2> apply(
-            final Collection<Particle> particles,
-            final Data data) {
-        // final var neighbours = data.cim().evaluate(particles);
+    public Map<Particle, Vector2> apply(final Collection<Particle> particles, final Data data) {
+        final var neighbours = data.cim().evaluate(particles);
 
         return particles.parallelStream()
                 .collect(Collectors.toMap(Function.identity(), p -> {
                     final var interactives = Stream
-                            .concat(particles.stream(), data.walls().stream())
-                            .filter(o -> o.overlap(p) > 0)
+                            .concat(neighbours.get(p).stream(), data.walls().stream().filter(w -> w.overlap(p) > 0))
                             .toList();
 
                     final var gravity = Forces.gravity(p);
