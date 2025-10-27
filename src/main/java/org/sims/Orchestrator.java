@@ -125,10 +125,10 @@ public record Orchestrator(Simulation<?, ?, ?> simulation, Engine<?> engine, Lis
     private static record Logger(Step step, List<String> outputs, OnWrite onLog) implements Runnable {
         @Override
         public void run() {
-            final var writers = new ArrayList<Writer>(outputs.size());
+            final var appenders = new ArrayList<Writer>(outputs.size());
             try {
                 for (final var filename : outputs) {
-                    writers.add(Resources.appender(filename));
+                    appenders.add(Resources.appender(filename));
                 }
 
                 step.log(writers);
@@ -136,7 +136,7 @@ public record Orchestrator(Simulation<?, ?, ?> simulation, Engine<?> engine, Lis
                 onLog.run();
             } catch (IOException e) {
             } finally {
-                for (final var writer : writers) {
+                for (final var writer : appenders) {
                     try {
                         writer.close();
                     } catch (final IOException e) {
