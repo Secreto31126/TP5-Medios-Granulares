@@ -1,7 +1,7 @@
 package org.sims.models;
 
-import java.util.Iterator;
-import java.util.function.Supplier;
+import java.util.*;
+import java.util.function.*;
 
 public record Matrix<T>(int rows, int cols, T[][]data) implements Iterable<T> {
     @SuppressWarnings("unchecked")
@@ -9,22 +9,13 @@ public record Matrix<T>(int rows, int cols, T[][]data) implements Iterable<T> {
         this(rows, cols, (T[][]) new Object[rows][cols]);
     }
 
-    public Matrix(int rows, int cols, T initialValue) {
-        this(rows, cols);
-        for (int i = 0; i < rows; i++) {
-            for (int j = 0; j < cols; j++) {
-                data[i][j] = initialValue;
-            }
-        }
-    }
-
     public Matrix(int rows, int cols, Supplier<T> supplier) {
         this(rows, cols);
-        for (int i = 0; i < rows; i++) {
-            for (int j = 0; j < cols; j++) {
-                data[i][j] = supplier.get();
-            }
-        }
+        this.set(supplier);
+    }
+
+    public Matrix(int rows, int cols, T initialValue) {
+        this(rows, cols, () -> initialValue);
     }
 
     public Matrix(int side) {
@@ -51,6 +42,14 @@ public record Matrix<T>(int rows, int cols, T[][]data) implements Iterable<T> {
         data[row][col] = value;
     }
 
+    public void set(final Supplier<T> supplier) {
+        this.forEachCell((i, j) -> data[i][j] = supplier.get());
+    }
+
+    public void clear() {
+        this.forEachCell((i, j) -> data[i][j] = null);
+    }
+
     @Override
     public Iterator<T> iterator() {
         return new Iterator<T>() {
@@ -74,5 +73,13 @@ public record Matrix<T>(int rows, int cols, T[][]data) implements Iterable<T> {
                 return value;
             }
         };
+    }
+
+    private void forEachCell(BiConsumer<Integer, Integer> action) {
+        for (int i = 0; i < rows; i++) {
+            for (int j = 0; j < cols; j++) {
+                action.accept(i, j);
+            }
+        }
     }
 }
