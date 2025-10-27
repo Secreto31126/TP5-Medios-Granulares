@@ -20,12 +20,11 @@ public class Main {
 
         final var pbs = new ProgressBar("Vibrating", simulation.steps());
         final var pbw = new ProgressBar("Writting", simulation.steps() / SAVE_INTERVAL + 1);
-        final var pbl = new ProgressBar("Logging", simulation.steps());
 
         final var onStep = new Orchestrator.SkipSteps(SAVE_INTERVAL, pbs::step);
-        try (pbl; pbw; pbs; final var engine = SandEngine.build(simulation)) {
+        try (pbw; pbs; final var engine = SandEngine.build(simulation)) {
             new Orchestrator(simulation, engine, List.of("particles", "walls"), List.of("exited.txt"))
-                    .start(onStep, pbw::step, pbl::step);
+                    .start(onStep, pbw::step);
         }
     }
 

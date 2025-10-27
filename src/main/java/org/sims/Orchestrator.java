@@ -26,7 +26,7 @@ public record Orchestrator(Simulation<?, ?, ?> simulation, Engine<?> engine, Lis
      *
      * @param onStep The OnStep event handler.
      */
-    public void start(final OnStep onStep, final OnWrite onWrite, final OnWrite onLog) throws Exception {
+    public void start(final OnStep onStep, final OnWrite onWrite) throws Exception {
         Resources.init();
         outputs.forEach(Resources::prepareDir);
 
@@ -85,8 +85,8 @@ public record Orchestrator(Simulation<?, ?, ?> simulation, Engine<?> engine, Lis
     /**
      * Log a step using an executor service
      */
-    private static void log(final ExecutorService ex, final Step step, List<String> outputs, final OnWrite onLog) {
-        ex.submit(new Logger(step, outputs, onLog));
+    private static void log(final ExecutorService ex, final Step step, List<String> outputs) {
+        ex.submit(new Logger(step, outputs));
     }
 
     /**
@@ -122,7 +122,7 @@ public record Orchestrator(Simulation<?, ?, ?> simulation, Engine<?> engine, Lis
     /**
      * A task to save a log step
      */
-    private static record Logger(Step step, List<String> outputs, OnWrite onLog) implements Runnable {
+    private static record Logger(Step step, List<String> outputs) implements Runnable {
         @Override
         public void run() {
             final var appenders = new ArrayList<Writer>(outputs.size());
@@ -131,9 +131,7 @@ public record Orchestrator(Simulation<?, ?, ?> simulation, Engine<?> engine, Lis
                     appenders.add(Resources.appender(filename));
                 }
 
-                step.log(writers);
-
-                onLog.run();
+                step.log(appenders);
             } catch (IOException e) {
             } finally {
                 for (final var writer : appenders) {
