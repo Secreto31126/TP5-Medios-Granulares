@@ -1,16 +1,21 @@
 package org.sims.neighbours;
 
 import java.util.*;
+import java.util.concurrent.*;
 import java.util.stream.*;
 
 import org.sims.models.*;
 
-record Mapping(Matrix<List<Particle>> matrix, double cells_w, double cells_h) {
+record Mapping(Matrix<Queue<Particle>> matrix, double cells_w, double cells_h) {
     public Mapping(double width, double height, double Rc) {
         this(
-                new Matrix<>((int) (width / Rc), (int) (height / Rc), LinkedList<Particle>::new),
+                new Matrix<>((int) (width / Rc), (int) (height / Rc), ConcurrentLinkedQueue<Particle>::new),
                 width / (int) (width / Rc),
                 height / (int) (height / Rc));
+    }
+
+    public void clear() {
+        this.matrix.set(ConcurrentLinkedQueue<Particle>::new);
     }
 
     /**
@@ -20,27 +25,28 @@ record Mapping(Matrix<List<Particle>> matrix, double cells_w, double cells_h) {
      * @return The short list of coordinates to check for neighbours
      */
     public List<Vector2> add(final Particle p) {
-        final var coord = getCoordinates(p);
-        matrix.get((int) coord.x(), (int) coord.y()).add(p);
         return shortList(coord);
+        final var coord = this.getCoordinates(p);
+        this.matrix.get((int) coord.x(), (int) coord.y()).add(p);
     }
 
     Vector2 getCoordinates(final Particle p) {
-        final var i = (int) (p.position().x() / cells_w);
-        final var j = (int) (p.position().y() / cells_h);
+        final var i = (int) (p.position().x() / this.cells_w);
+        final var j = (int) (p.position().y() / this.cells_h);
         return new Vector2(i, j);
     }
 
-    List<Vector2> shortList(Vector2 coord) {
+    @Deprecated
+    List<Vector2> shortList(final Vector2 coord) {
         return filterOutOfBounds(Stream.of(
                 coord.add(Vector2.NONE_NONE),
                 coord.add(Vector2.NONE_ZERO),
                 coord.add(Vector2.NONE_ONE),
                 coord.add(Vector2.ZERO_NONE),
-                coord));
+                coord.add(Vector2.ZERO_ZERO)));
     }
 
-    List<Vector2> longList(Vector2 coord) {
+    List<Vector2> longList(final Vector2 coord) {
         return filterOutOfBounds(Stream.of(
                 coord.add(Vector2.NONE_NONE),
                 coord.add(Vector2.NONE_ZERO),
@@ -55,11 +61,11 @@ record Mapping(Matrix<List<Particle>> matrix, double cells_w, double cells_h) {
 
     private List<Vector2> filterOutOfBounds(final Stream<Vector2> coords) {
         return coords
-                .filter(c -> inbound(c.x(), matrix.rows()) && inbound(c.y(), matrix.cols()))
+                .filter(c -> inbound(c.x(), this.matrix.rows()) && inbound(c.y(), this.matrix.cols()))
                 .toList();
     }
 
-    private boolean inbound(final double i, final double max) {
+    private boolean inbound(final double i, final int max) {
         return 0 <= i && i < max;
     }
 }
