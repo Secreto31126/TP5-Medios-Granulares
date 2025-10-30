@@ -85,7 +85,7 @@ public enum SandInitialization {
         final var exited = new LinkedList<Particle>();
 
         for (final var p : particles) {
-            if (portals.stream().noneMatch(portal -> portal.overlap(p) > 0)) {
+            if (portals.stream().noneMatch(portal -> portal.crossed(p))) {
                 updated.add(p);
                 continue;
             }
@@ -187,7 +187,10 @@ public enum SandInitialization {
      * @param simulation the simulation to populate
      */
     private static void portal(final SandSimulation simulation) {
-        simulation.portals().add(new Portal(Orientation.HOR, 0));
+        simulation.portals().add(new Portal(Orientation.HOR, 0, true));
+        simulation.portals().add(new Portal(Orientation.HOR, HEIGHT + PORTAL, false));
+        simulation.portals().add(new Portal(Orientation.VER, 0, true));
+        simulation.portals().add(new Portal(Orientation.VER, WIDTH, false));
     }
 
     /**

@@ -4,7 +4,18 @@ import java.util.*;
 
 import org.sims.interfaces.Interactive;
 
-public record Portal(Orientation orientation, double constant) implements Interactive<Particle> {
+public record Portal(Orientation orientation, double constant, boolean below) implements Interactive<Particle> {
+    /**
+     * Check if a particle has crossed the portal
+     *
+     * @param c The particle to check
+     * @return True if the particle has crossed the portal
+     */
+    public boolean crossed(Particle c) {
+        final var cpos = orientation.perpendicular(c.position());
+        return below ? cpos < constant : cpos > constant;
+    }
+
     @Override
     public double overlap(final Particle c) {
         final var cpos = orientation.perpendicular(c.position());
