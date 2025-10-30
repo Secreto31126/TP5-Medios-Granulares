@@ -17,19 +17,19 @@ public record Vector2(double x, double y) {
 
     public static final Vector2 ZERO = ZERO_ZERO;
 
-    public Vector2 neg() {
+    public final Vector2 neg() {
         return new Vector2(-x, -y);
     }
 
-    public Vector2 add(final Vector2 v) {
+    public final Vector2 add(final Vector2 v) {
         return new Vector2(x + v.x, y + v.y);
     }
 
-    public Vector2 subtract(final Vector2 v) {
+    public final Vector2 subtract(final Vector2 v) {
         return new Vector2(x - v.x, y - v.y);
     }
 
-    public Vector2 mult(final double scalar) {
+    public final Vector2 mult(final double scalar) {
         return new Vector2(x * scalar, y * scalar);
     }
 
@@ -37,7 +37,7 @@ public record Vector2(double x, double y) {
         return v.mult(scalar);
     }
 
-    public Vector2 div(final double scalar) {
+    public final Vector2 div(final double scalar) {
         return new Vector2(x / scalar, y / scalar);
     }
 
@@ -45,30 +45,31 @@ public record Vector2(double x, double y) {
         return v.div(scalar);
     }
 
-    public double dot(final Vector2 v) {
+    public final double dot(final Vector2 v) {
         return x * v.x + y * v.y;
     }
 
-    public double norm2() {
-        return this.dot(this);
+    public final double norm2() {
+        return x * x + y * y;
     }
 
-    public double norm() {
-        return Math.sqrt(this.norm2());
+    public final double norm() {
+        return Math.sqrt(x * x + y * y);
     }
 
-    public Vector2 normalize() {
-        return this.div(this.norm());
+    public final Vector2 normalize() {
+        final double n = Math.sqrt(x * x + y * y);
+        return new Vector2(x / n, y / n);
     }
 
-    public Vector2 hadamard(final Vector2 v) {
+    public final Vector2 hadamard(final Vector2 v) {
         return new Vector2(x * v.x, y * v.y);
     }
 
     /**
      * @apiNote Rotate the vector 90 degrees counter-clockwise
      */
-    public Vector2 rotate() {
+    public final Vector2 rotate() {
         return new Vector2(-y, x);
     }
 

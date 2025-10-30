@@ -24,14 +24,16 @@ public record Beeman<D>(double dt, double dt2, Force<Particle, D> force, Map<Par
     @Override
     public List<Particle> step(final Collection<Particle> particles, D data) {
         final var prediction = particles.stream().map(p -> {
+            final var prevAcc = memory.getOrDefault(p, Vector2.ZERO);
+
             final var predicted_pos = p.position()
                     .add(p.velocity().mult(dt))
                     .add(p.acceleration().mult((2.0 / 3.0) * dt2))
-                    .subtract(memory.get(p).mult((1.0 / 6.0) * dt2));
+                    .subtract(prevAcc.mult((1.0 / 6.0) * dt2));
 
             final var predicted_vel = p.velocity()
                     .add(p.acceleration().mult((3.0 / 2.0) * dt))
-                    .subtract(memory.get(p).mult((1.0 / 2.0) * dt));
+                    .subtract(prevAcc.mult((1.0 / 2.0) * dt));
 
             return new Particle(p, predicted_pos, predicted_vel, p.acceleration());
         }).toList();
@@ -39,18 +41,19 @@ public record Beeman<D>(double dt, double dt2, Force<Particle, D> force, Map<Par
         final var forces = force.apply(prediction, data);
 
         return particles.stream().map(p -> {
-            // Dupped code :/
+            final var prevAcc = memory.getOrDefault(p, Vector2.ZERO);
+
             final var future_pos = p.position()
                     .add(p.velocity().mult(dt))
                     .add(p.acceleration().mult((2.0 / 3.0) * dt2))
-                    .subtract(memory.get(p).mult((1.0 / 6.0) * dt2));
+                    .subtract(prevAcc.mult((1.0 / 6.0) * dt2));
 
             final var future_acc = forces.get(p).div(p.mass());
 
             final var future_vel = p.velocity()
                     .add(future_acc.mult((1.0 / 3.0) * dt))
                     .add(p.acceleration().mult((5.0 / 6.0) * dt))
-                    .subtract(memory.get(p).mult((1.0 / 6.0) * dt));
+                    .subtract(prevAcc.mult((1.0 / 6.0) * dt));
 
             memory.put(p, p.acceleration());
             return new Particle(p, future_pos, future_vel, future_acc);

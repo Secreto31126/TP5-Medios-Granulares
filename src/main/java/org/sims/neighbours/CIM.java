@@ -2,7 +2,6 @@ package org.sims.neighbours;
 
 import java.util.*;
 import java.util.function.*;
-import java.util.stream.*;
 
 import org.sims.models.*;
 
@@ -41,18 +40,24 @@ public record CIM(Mapping mapping, double Rc, BiFunction<Particle, Particle, Boo
      *
      * @apiNote Mappings are reset before evaluation.
      *
-     * @implNote The returned map is concurrent.
-     *
      * @param particles List of particles to evaluate
      * @return A map where each key is a particle and the value is a list of
      *         particles that interact with it.
      */
     public Map<Particle, List<Particle>> evaluate(final Collection<Particle> particles) {
         this.reset();
-        final var coords = particles.stream()
-                .collect(Collectors.toMap(Function.identity(), this.mapping::add));
-        return coords.entrySet().stream()
-                .collect(Collectors.toConcurrentMap(Map.Entry::getKey, this::interacting));
+
+        final var coords = new HashMap<Particle, List<Vector2>>(particles.size());
+        for (var p : particles) {
+            coords.put(p, this.mapping.add(p));
+        }
+
+        final var result = new HashMap<Particle, List<Particle>>(particles.size());
+        for (var e : coords.entrySet()) {
+            result.put(e.getKey(), this.interacting(e));
+        }
+
+        return result;
     }
 
     /**
