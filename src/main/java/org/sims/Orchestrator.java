@@ -29,6 +29,7 @@ public record Orchestrator(Simulation<?, ?, ?> simulation, Engine<?> engine, Lis
     public void start(final OnStep onStep, final OnWrite onWrite) throws Exception {
         Resources.init();
         outputs.forEach(Resources::prepareDir);
+        logs.forEach(Resources::prepareFile);
 
         try (final var writer = Resources.writer("setup.txt")) {
             simulation.saveTo(writer);

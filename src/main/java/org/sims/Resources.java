@@ -42,6 +42,15 @@ public abstract class Resources {
     }
 
     /**
+     * Prepare a file for output, deleting if exists
+     *
+     * @param path the path components
+     */
+    public static void prepareFile(String... path) {
+        pathed(path).toFile().delete();
+    }
+
+    /**
      * Get a buffered reader for a path
      *
      * @param path the path components
