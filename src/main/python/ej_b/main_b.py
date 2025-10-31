@@ -134,7 +134,7 @@ def plot_flow_rate(flow_rates, apertures, out_path: Path | None = None):
 # ---------- MAIN ----------
 def main(results_dir: str | None = None):
     # parámetros
-    steps = 2000000
+    steps = 100000
     omega = 500
     apertures = [0.03, 0.04, 0.05, 0.06]
 
@@ -232,5 +232,5 @@ def main(results_dir: str | None = None):
 
 if __name__ == "__main__":
     # Example: reuse existing
-    main(results_dir="../../../results/omega_500_1761871530.747757")
-    # main()
+    # main(results_dir="../../../results/omega_500_1761871530.747757")
+    main()
