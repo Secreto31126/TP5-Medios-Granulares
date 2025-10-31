@@ -18,7 +18,7 @@ record SandForce() implements Force<Particle, SandForce.Data> {
         final var neighbours = data.cim().evaluate(particles);
         final var walls = data.walls();
 
-        return particles.parallelStream()
+        return particles.stream()
                 .collect(Collectors.toMap(Function.identity(), p -> {
                     final var particleNeighbours = neighbours.get(p);
 
