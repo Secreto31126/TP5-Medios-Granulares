@@ -54,9 +54,18 @@ class OmegaResultsPlotter:
                 continue
 
             omega = float(omega_str)
-            q = result['flow_rate']
-            q_err = result['flow_rate_std_err']
-            r2 = result['r_squared']
+
+            # Handle both binned and linear analysis results
+            if 'flow_rate_mean' in result:
+                # Binned analysis
+                q = result['flow_rate_mean']
+                q_err = result['flow_rate_std']
+                r2 = None  # Not applicable for binned analysis
+            else:
+                # Linear analysis
+                q = result['flow_rate']
+                q_err = result['flow_rate_std_err']
+                r2 = result['r_squared']
 
             omega_data.append((omega, q, q_err, r2))
 
@@ -66,7 +75,7 @@ class OmegaResultsPlotter:
         self.omega_values = np.array([x[0] for x in omega_data])
         self.flow_rates = np.array([x[1] for x in omega_data])
         self.flow_rate_errors = np.array([x[2] for x in omega_data])
-        self.r_squared_values = np.array([x[3] for x in omega_data])
+        self.r_squared_values = np.array([x[3] if x[3] is not None else np.nan for x in omega_data])
 
     def plot_discharge_curves(self, output_file: Optional[Path] = None) -> None:
         """
@@ -123,7 +132,13 @@ class OmegaResultsPlotter:
         if output_file is None:
             output_file = self.run_dir / "flow_rate_vs_omega.png"
 
-        fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(12, 10), height_ratios=[3, 1])
+        # Check if we have R² data (linear analysis) or not (binned analysis)
+        has_r_squared = not np.all(np.isnan(self.r_squared_values))
+
+        if has_r_squared:
+            fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(12, 10), height_ratios=[3, 1])
+        else:
+            fig, ax1 = plt.subplots(1, 1, figsize=(12, 7))
 
         # Main plot: Q vs omega
         ax1.errorbar(self.omega_values, self.flow_rates, yerr=self.flow_rate_errors,
@@ -146,14 +161,15 @@ class OmegaResultsPlotter:
         ax1.legend(fontsize=11, loc='best')
         ax1.grid(True, alpha=0.3, linestyle='--')
 
-        # R² subplot
-        ax2.plot(self.omega_values, self.r_squared_values, 's-',
-                markersize=7, linewidth=2, color='darkgreen', alpha=0.7)
-        ax2.set_xlabel('Vibration frequency ω (s⁻¹)', fontsize=12, fontweight='bold')
-        ax2.set_ylabel('R² (goodness of fit)', fontsize=12, fontweight='bold')
-        ax2.set_title('Linear Fit Quality', fontsize=13, fontweight='bold')
-        ax2.grid(True, alpha=0.3, linestyle='--')
-        ax2.set_ylim([0.9, 1.0])
+        # R² subplot (only for linear analysis)
+        if has_r_squared:
+            ax2.plot(self.omega_values, self.r_squared_values, 's-',
+                    markersize=7, linewidth=2, color='darkgreen', alpha=0.7)
+            ax2.set_xlabel('Vibration frequency ω (s⁻¹)', fontsize=12, fontweight='bold')
+            ax2.set_ylabel('R² (goodness of fit)', fontsize=12, fontweight='bold')
+            ax2.set_title('Linear Fit Quality', fontsize=13, fontweight='bold')
+            ax2.grid(True, alpha=0.3, linestyle='--')
+            ax2.set_ylim([0.9, 1.0])
 
         plt.tight_layout()
         plt.savefig(output_file, dpi=300, bbox_inches='tight')
@@ -182,7 +198,15 @@ class OmegaResultsPlotter:
         print("\n" + "="*70)
         print("FLOW RATE RESULTS")
         print("="*70)
-        print(f"{'Omega (s⁻¹)':<15} {'Flow Rate (p/s)':<25} {'R²':<10}")
+
+        # Check if we have R² data
+        has_r_squared = not np.all(np.isnan(self.r_squared_values))
+
+        if has_r_squared:
+            print(f"{'Omega (s⁻¹)':<15} {'Flow Rate (p/s)':<25} {'R²':<10}")
+        else:
+            print(f"{'Omega (s⁻¹)':<15} {'Flow Rate (p/s)':<25}")
+
         print("-"*70)
 
         if len(self.omega_values) == 0:
@@ -194,8 +218,12 @@ class OmegaResultsPlotter:
         for i, omega in enumerate(self.omega_values):
             q = self.flow_rates[i]
             q_err = self.flow_rate_errors[i]
-            r2 = self.r_squared_values[i]
-            print(f"{omega:<15.1f} {q:.4f} ± {q_err:.4f}         {r2:.4f}")
+
+            if has_r_squared:
+                r2 = self.r_squared_values[i]
+                print(f"{omega:<15.1f} {q:.4f} ± {q_err:.4f}         {r2:.4f}")
+            else:
+                print(f"{omega:<15.1f} {q:.4f} ± {q_err:.4f}")
 
         print("-"*70)
 

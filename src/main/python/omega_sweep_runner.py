@@ -7,6 +7,7 @@ Organizes results in timestamped directories for persistence across runs.
 
 import subprocess
 import sys
+import argparse
 from pathlib import Path
 from datetime import datetime
 import json
@@ -26,6 +27,7 @@ class OmegaSweepRunner:
                  jar_path: str = "target/tp5.jar",
                  output_base_dir: str = "src/main/python/results",
                  transient_cutoff: float = 40.0,
+                 bin_size: float = 20.0,
                  project_root: Path = None):
         """
         Initialize omega sweep runner.
@@ -38,6 +40,7 @@ class OmegaSweepRunner:
             jar_path: Path to compiled JAR file (relative to project root)
             output_base_dir: Base directory for all results (relative to project root)
             transient_cutoff: Time to skip before steady-state analysis
+            bin_size: Size of time bins for flow rate calculation (seconds)
             project_root: Project root directory (auto-detected if None)
         """
         self.omega_values = omega_values
@@ -45,6 +48,7 @@ class OmegaSweepRunner:
         self.dt = dt
         self.aperture = aperture
         self.transient_cutoff = transient_cutoff
+        self.bin_size = bin_size
 
         # Find project root (directory containing pom.xml)
         if project_root is None:
@@ -84,6 +88,8 @@ class OmegaSweepRunner:
         print(f"\n{'='*70}")
         print(f"Setting up run directory: {self.run_dir}")
         print(f"Timestamp: {self.timestamp}")
+        print(f"Simulation time: {self.simulation_time} seconds")
+        print(f"Bin size for analysis: {self.bin_size} seconds")
         print(f"{'='*70}\n")
 
     def run_simulation(self, omega: float) -> Path:
@@ -209,7 +215,9 @@ class OmegaSweepRunner:
                 exited_file=exited_file,
                 output_dir=omega_dir,
                 omega=omega,
-                transient_cutoff=self.transient_cutoff
+                transient_cutoff=self.transient_cutoff,
+                method="binned",
+                bin_size=self.bin_size
             )
             return summary
         except Exception as e:
@@ -264,7 +272,9 @@ class OmegaSweepRunner:
                 'dt': self.dt,
                 'steps': self.steps,
                 'aperture': self.aperture,
-                'transient_cutoff': self.transient_cutoff
+                'transient_cutoff': self.transient_cutoff,
+                'bin_size': self.bin_size,
+                'analysis_method': 'binned'
             },
             'results': {}
         }
@@ -288,23 +298,28 @@ class OmegaSweepRunner:
         print(f"# OMEGA SWEEP COMPLETE")
         print(f"{'#'*70}\n")
 
-        print(f"{'Omega (s⁻¹)':<15} {'Flow Rate (p/s)':<20} {'R²':<10} {'Status':<10}")
+        print(f"{'Omega (s⁻¹)':<15} {'Flow Rate (p/s)':<25} {'Status':<10}")
         print(f"{'-'*70}")
 
         for omega in self.omega_values:
             result = self.results.get(omega)
             if result:
-                q = result['flow_rate']
-                q_err = result['flow_rate_std_err']
-                r2 = result['r_squared']
+                # Handle both binned and linear results
+                if 'flow_rate_mean' in result:
+                    q = result['flow_rate_mean']
+                    q_err = result['flow_rate_std']
+                else:
+                    q = result['flow_rate']
+                    q_err = result.get('flow_rate_std_err', 0.0)
                 status = "✓ SUCCESS"
-                print(f"{omega:<15.1f} {q:.4f} ± {q_err:.4f}      {r2:<10.4f} {status}")
+                print(f"{omega:<15.1f} {q:.4f} ± {q_err:.4f}           {status}")
             else:
-                print(f"{omega:<15.1f} {'N/A':<20} {'N/A':<10} {'✗ FAILED'}")
+                print(f"{omega:<15.1f} {'N/A':<25} {'✗ FAILED'}")
 
         print(f"{'-'*70}\n")
         print(f"Results directory: {self.run_dir}")
         print(f"Run timestamp: {self.timestamp}")
+        print(f"Analysis method: Binned (bin size = {self.bin_size}s)")
         print(f"\nTo visualize results, run:")
         print(f"  python analysis/plot_omega_results.py --timestamp {self.timestamp}")
         print(f"  or simply: python analysis/plot_omega_results.py (uses latest)\n")
@@ -313,29 +328,81 @@ class OmegaSweepRunner:
 def main():
     """Main entry point for omega sweep runner."""
 
-    # Default omega values for Point A
-    omega_values = [400, 450, 500, 550, 600]
+    # Set up argument parser
+    parser = argparse.ArgumentParser(
+        description="Run granular media simulations across multiple omega (frequency) values.",
+        formatter_class=argparse.ArgumentDefaultsHelpFormatter
+    )
 
-    # Parse command line arguments
-    if len(sys.argv) > 1:
-        try:
-            omega_values = [float(x) for x in sys.argv[1:]]
-            print(f"Using custom omega values: {omega_values}")
-        except ValueError:
-            print("ERROR: Invalid omega values provided")
-            print("Usage: python omega_sweep_runner.py [omega1 omega2 ...]")
-            print("Example: python omega_sweep_runner.py 400 450 500 550 600")
-            sys.exit(1)
+    parser.add_argument(
+        "--omegas",
+        type=float,
+        nargs='+',
+        required=True,
+        help="List of omega frequencies to test (s⁻¹). Example: --omegas 400 450 500"
+    )
 
-    # Create runner with Point A parameters
+    parser.add_argument(
+        "--sim-time",
+        type=float,
+        default=200.0,
+        help="Simulation time in seconds"
+    )
+
+    parser.add_argument(
+        "--bin-seconds",
+        type=float,
+        default=20.0,
+        help="Size of time bins for flow rate calculation (seconds)"
+    )
+
+    parser.add_argument(
+        "--dt",
+        type=float,
+        default=1e-4,
+        help="Integration timestep (seconds)"
+    )
+
+    parser.add_argument(
+        "--aperture",
+        type=float,
+        default=0.03,
+        help="Box aperture size (meters)"
+    )
+
+    parser.add_argument(
+        "--transient-cutoff",
+        type=float,
+        default=20.0,
+        help="Time to skip before steady-state analysis (seconds)"
+    )
+
+    parser.add_argument(
+        "--jar-path",
+        type=str,
+        default="target/tp5.jar",
+        help="Path to compiled JAR file (relative to project root)"
+    )
+
+    parser.add_argument(
+        "--output-dir",
+        type=str,
+        default="src/main/python/results",
+        help="Base directory for results (relative to project root)"
+    )
+
+    args = parser.parse_args()
+
+    # Create runner with parsed parameters
     runner = OmegaSweepRunner(
-        omega_values=omega_values,
-        simulation_time=1000.0,      # 1000 seconds
-        dt=1e-4,                      # 0.0001 s timestep
-        aperture=0.03,                # 3 cm aperture
-        jar_path="target/tp5.jar",
-        output_base_dir="src/main/python/results",
-        transient_cutoff=40.0         # Skip first 40s for steady-state analysis
+        omega_values=args.omegas,
+        simulation_time=args.sim_time,
+        dt=args.dt,
+        aperture=args.aperture,
+        jar_path=args.jar_path,
+        output_base_dir=args.output_dir,
+        transient_cutoff=args.transient_cutoff,
+        bin_size=args.bin_seconds
     )
 
     # Run the sweep
