@@ -19,7 +19,7 @@ public abstract class Forces {
 
     /**
      * Get the overlap force of all the overlaping particles
-     * 
+     *
      * @apiNote The interactives collection must not contain non-overlaping entities
      *
      * @param p     The particle
