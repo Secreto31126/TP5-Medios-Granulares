@@ -49,3 +49,7 @@ sim/
 *.jpeg
 *.mp4
 *.gif
+*/results/
+results/
+output/
+*/output/

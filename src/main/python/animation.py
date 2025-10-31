@@ -73,7 +73,7 @@ def main():
         plt.show() # pyright: ignore[reportUnknownMemberType]
         abar.close()
 
-    if False:
+    if True:
         print("Saving animation...")
 
         filename = resources.path(f"{int(time.time())}.mp4")
