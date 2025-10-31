@@ -48,19 +48,19 @@ record Mapping(Matrix<Queue<Particle>> matrix, double cells_w, double cells_h) {
 
         var x_cheese = (int) coord.x();
         if (coord.x() < 0) {
-            System.out.println("Particle under bounds on X: " + p.position().x());
+            System.out.println("Particle under bounds on X: " + p.position());
             x_cheese = 0;
         } else if (this.matrix.rows() <= coord.x()) {
-            System.out.println("Particle over bounds on X: " + p.position().x());
+            System.out.println("Particle over bounds on X: " + p.position());
             x_cheese = this.matrix.rows() - 1;
         }
 
         var y_cheese = (int) coord.y();
         if (coord.y() < 0) {
-            System.out.println("Particle under bounds on X: " + p.position().y());
+            System.out.println("Particle under bounds on X: " + p.position());
             y_cheese = 0;
         } else if (this.matrix.cols() <= coord.y()) {
-            System.out.println("Particle over bounds on X: " + p.position().y());
+            System.out.println("Particle over bounds on X: " + p.position());
             y_cheese = this.matrix.cols() - 1;
         }
 
