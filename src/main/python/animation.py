@@ -38,7 +38,7 @@ def main(plot: bool = True, save: bool = True):
 
     circles: list[Circle] = []
     for p in frames.next(0)[1]:
-        c = Circle(p.position.tuple(), radius=p.radius, color="blue")
+        c = Circle(p.position.tuple(), radius=p.radius, facecolor="lightblue", edgecolor="blue")
 
         ax.add_patch(c)
         circles.append(c)
