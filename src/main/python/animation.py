@@ -2,6 +2,8 @@ from typing import Callable
 
 import time
 
+import sys
+
 import matplotlib.pyplot as plt
 from matplotlib.lines import Line2D
 from matplotlib.patches import Circle
@@ -17,7 +19,7 @@ from classes.wall import Wall
 from classes.particle import Particle
 
 abar = None
-def main():
+def main(plot: bool = True, save: bool = True):
     global abar
 
     with open(resources.path("setup.txt")) as f:
@@ -68,12 +70,12 @@ def main():
         repeat=True
     )
 
-    if True:
+    if plot:
         abar = tqdm(total=frames.count())
         plt.show() # pyright: ignore[reportUnknownMemberType]
         abar.close()
 
-    if True:
+    if save:
         print("Saving animation...")
 
         filename = resources.path(f"{int(time.time())}.mp4")
@@ -84,4 +86,4 @@ def main():
         print(f"Animation saved at {filename}")
 
 if __name__ == "__main__":
-    main()
+    main("-s" not in sys.argv, "-p" not in sys.argv)
