@@ -1,7 +1,7 @@
 """
-Plot Omega Results
+Plot Aperture Results
 
-Visualization script for omega sweep results.
+Visualization script for aperture sweep results.
 Reads timestamped analysis results and generates publication-quality plots.
 """
 
@@ -13,8 +13,8 @@ from pathlib import Path
 from typing import Dict, List, Tuple, Optional
 
 
-class OmegaResultsPlotter:
-    """Plots results from omega parameter sweep."""
+class ApertureResultsPlotter:
+    """Plots results from aperture parameter sweep."""
 
     def __init__(self, run_dir: Path):
         """
@@ -26,7 +26,7 @@ class OmegaResultsPlotter:
         self.run_dir = Path(run_dir)
         self.summary_file = self.run_dir / "summary.json"
         self.summary_data = None
-        self.omega_values = []
+        self.aperture_values = []
         self.flow_rates = []
         self.flow_rate_errors = []
         self.r_squared_values = []
@@ -47,13 +47,13 @@ class OmegaResultsPlotter:
         """Extract flow rate data from summary."""
         results = self.summary_data['results']
 
-        omega_data = []
-        for omega_str, result in results.items():
+        aperture_data = []
+        for aperture_str, result in results.items():
             if 'error' in result:
-                print(f"Warning: Skipping ω = {omega_str} (analysis failed)")
+                print(f"Warning: Skipping aperture = {aperture_str} (analysis failed)")
                 continue
 
-            omega = float(omega_str)
+            aperture = float(aperture_str)
 
             # Handle both binned and linear analysis results
             if 'flow_rate_mean' in result:
@@ -67,15 +67,15 @@ class OmegaResultsPlotter:
                 q_err = result['flow_rate_std_err']
                 r2 = result['r_squared']
 
-            omega_data.append((omega, q, q_err, r2))
+            aperture_data.append((aperture, q, q_err, r2))
 
-        # Sort by omega
-        omega_data.sort(key=lambda x: x[0])
+        # Sort by aperture
+        aperture_data.sort(key=lambda x: x[0])
 
-        self.omega_values = np.array([x[0] for x in omega_data])
-        self.flow_rates = np.array([x[1] for x in omega_data])
-        self.flow_rate_errors = np.array([x[2] for x in omega_data])
-        self.r_squared_values = np.array([x[3] if x[3] is not None else np.nan for x in omega_data])
+        self.aperture_values = np.array([x[0] for x in aperture_data])
+        self.flow_rates = np.array([x[1] for x in aperture_data])
+        self.flow_rate_errors = np.array([x[2] for x in aperture_data])
+        self.r_squared_values = np.array([x[3] if x[3] is not None else np.nan for x in aperture_data])
 
     def plot_discharge_curves(self, output_file: Optional[Path] = None) -> None:
         """
@@ -89,15 +89,15 @@ class OmegaResultsPlotter:
 
         fig, ax = plt.subplots(figsize=(12, 7))
 
-        # Load and plot each omega's discharge curve
-        colors = plt.cm.viridis(np.linspace(0, 1, len(self.omega_values)))
+        # Load and plot each aperture's discharge curve
+        colors = plt.cm.viridis(np.linspace(0, 1, len(self.aperture_values)))
 
-        for i, omega in enumerate(self.omega_values):
-            omega_dir = self.run_dir / f"omega_{int(omega)}"
-            analysis_file = omega_dir / "analysis.json"
+        for i, aperture in enumerate(self.aperture_values):
+            aperture_dir = self.run_dir / f"aperture_{aperture:.3f}"
+            analysis_file = aperture_dir / "analysis.json"
 
             if not analysis_file.exists():
-                print(f"Warning: No analysis file for ω = {omega}")
+                print(f"Warning: No analysis file for aperture = {aperture}")
                 continue
 
             with open(analysis_file, 'r') as f:
@@ -108,11 +108,11 @@ class OmegaResultsPlotter:
 
             ax.plot(exit_times, cumulative_count, 'o-',
                    color=colors[i], markersize=3, alpha=0.7,
-                   label=f'ω = {omega:.0f} s⁻¹ (Q = {self.flow_rates[i]:.3f} p/s)')
+                   label=f'd = {aperture:.3f} m (Q = {self.flow_rates[i]:.3f} p/s)')
 
         ax.set_xlabel('Time (s)', fontsize=13, fontweight='bold')
         ax.set_ylabel('Cumulative particles exited', fontsize=13, fontweight='bold')
-        ax.set_title('Discharge Curves for Different Vibration Frequencies',
+        ax.set_title('Discharge Curves for Different Aperture Sizes',
                     fontsize=15, fontweight='bold')
         ax.legend(fontsize=10, loc='best')
         ax.grid(True, alpha=0.3, linestyle='--')
@@ -122,15 +122,15 @@ class OmegaResultsPlotter:
         print(f"Discharge curves plot saved to: {output_file}")
         plt.close()
 
-    def plot_flow_rate_vs_omega(self, output_file: Optional[Path] = None) -> None:
+    def plot_flow_rate_vs_aperture(self, output_file: Optional[Path] = None) -> None:
         """
-        Plot flow rate Q vs omega with error bars.
+        Plot flow rate Q vs aperture with error bars.
 
         Args:
             output_file: Path to save figure (if None, save to run_dir)
         """
         if output_file is None:
-            output_file = self.run_dir / "flow_rate_vs_omega.png"
+            output_file = self.run_dir / "flow_rate_vs_aperture.png"
 
         # Check if we have R² data (linear analysis) or not (binned analysis)
         has_r_squared = not np.all(np.isnan(self.r_squared_values))
@@ -140,20 +140,20 @@ class OmegaResultsPlotter:
         else:
             fig, ax1 = plt.subplots(1, 1, figsize=(12, 7))
 
-        # Main plot: Q vs omega
-        ax1.errorbar(self.omega_values, self.flow_rates, yerr=self.flow_rate_errors,
+        # Main plot: Q vs aperture
+        ax1.errorbar(self.aperture_values, self.flow_rates, yerr=self.flow_rate_errors,
                     fmt='o-', markersize=8, capsize=5, capthick=2,
                     linewidth=2, elinewidth=2, color='navy', alpha=0.7)
 
-        ax1.set_xlabel(r'$\omega$ (s$^{-1}$)', fontsize=13, fontweight='bold')
+        ax1.set_xlabel('Apertura d (m)', fontsize=13, fontweight='bold')
         ax1.set_ylabel('Caudal Q (partículas/s)', fontsize=13, fontweight='bold')
         ax1.grid(True, alpha=0.3, linestyle='--')
 
         # R² subplot (only for linear analysis)
         if has_r_squared:
-            ax2.plot(self.omega_values, self.r_squared_values, 's-',
+            ax2.plot(self.aperture_values, self.r_squared_values, 's-',
                     markersize=7, linewidth=2, color='darkgreen', alpha=0.7)
-            ax2.set_xlabel('Vibration frequency ω (s⁻¹)', fontsize=12, fontweight='bold')
+            ax2.set_xlabel('Apertura d (m)', fontsize=12, fontweight='bold')
             ax2.set_ylabel('R² (goodness of fit)', fontsize=12, fontweight='bold')
             ax2.set_title('Linear Fit Quality', fontsize=13, fontweight='bold')
             ax2.grid(True, alpha=0.3, linestyle='--')
@@ -161,12 +161,12 @@ class OmegaResultsPlotter:
 
         plt.tight_layout()
         plt.savefig(output_file, dpi=300, bbox_inches='tight')
-        print(f"Flow rate vs omega plot saved to: {output_file}")
+        print(f"Flow rate vs aperture plot saved to: {output_file}")
         plt.close()
 
     def plot_all(self) -> None:
         """Generate all plots."""
-        if len(self.omega_values) == 0:
+        if len(self.aperture_values) == 0:
             print("\nNo valid results to plot. Skipping plot generation.\n")
             return
 
@@ -175,7 +175,7 @@ class OmegaResultsPlotter:
         print("="*70 + "\n")
 
         self.plot_discharge_curves()
-        self.plot_flow_rate_vs_omega()
+        self.plot_flow_rate_vs_aperture()
 
         print("\n" + "="*70)
         print("All plots generated successfully!")
@@ -191,34 +191,34 @@ class OmegaResultsPlotter:
         has_r_squared = not np.all(np.isnan(self.r_squared_values))
 
         if has_r_squared:
-            print(f"{'Omega (s⁻¹)':<15} {'Flow Rate (p/s)':<25} {'R²':<10}")
+            print(f"{'Aperture (m)':<15} {'Flow Rate (p/s)':<25} {'R²':<10}")
         else:
-            print(f"{'Omega (s⁻¹)':<15} {'Flow Rate (p/s)':<25}")
+            print(f"{'Aperture (m)':<15} {'Flow Rate (p/s)':<25}")
 
         print("-"*70)
 
-        if len(self.omega_values) == 0:
+        if len(self.aperture_values) == 0:
             print("No valid results to display.")
             print("-"*70)
             print("="*70 + "\n")
             return
 
-        for i, omega in enumerate(self.omega_values):
+        for i, aperture in enumerate(self.aperture_values):
             q = self.flow_rates[i]
             q_err = self.flow_rate_errors[i]
 
             if has_r_squared:
                 r2 = self.r_squared_values[i]
-                print(f"{omega:<15.1f} {q:.4f} ± {q_err:.4f}         {r2:.4f}")
+                print(f"{aperture:<15.3f} {q:.4f} ± {q_err:.4f}         {r2:.4f}")
             else:
-                print(f"{omega:<15.1f} {q:.4f} ± {q_err:.4f}")
+                print(f"{aperture:<15.3f} {q:.4f} ± {q_err:.4f}")
 
         print("-"*70)
 
         # Find maximum
         max_idx = np.argmax(self.flow_rates)
         print(f"\nMaximum flow rate:")
-        print(f"  ω = {self.omega_values[max_idx]:.1f} s⁻¹")
+        print(f"  d = {self.aperture_values[max_idx]:.3f} m")
         print(f"  Q = {self.flow_rates[max_idx]:.4f} ± {self.flow_rate_errors[max_idx]:.4f} particles/s")
         print("="*70 + "\n")
 
@@ -266,18 +266,18 @@ def find_project_root() -> Path:
 def main():
     """Main entry point for plotting script."""
     parser = argparse.ArgumentParser(
-        description="Plot omega sweep results from timestamped runs",
+        description="Plot aperture sweep results from timestamped runs",
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""
 Examples:
   # Plot latest run
-  python plot_omega_results.py
+  python plot_aperture_results.py
 
   # Plot specific run by timestamp
-  python plot_omega_results.py --timestamp 20250129_143022
+  python plot_aperture_results.py --timestamp 20250129_143022
 
   # Specify custom results directory
-  python plot_omega_results.py --results-dir ../results
+  python plot_aperture_results.py --results-dir ../results
         """
     )
 
@@ -318,7 +318,7 @@ Examples:
 
     # Create plotter and generate plots
     try:
-        plotter = OmegaResultsPlotter(run_dir)
+        plotter = ApertureResultsPlotter(run_dir)
         plotter.load_summary()
         plotter.extract_results()
         plotter.print_summary()

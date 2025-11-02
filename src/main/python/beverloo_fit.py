@@ -8,19 +8,20 @@ Where:
     - Q: flow rate (particles/s)
     - d: opening width (m)
     - r: particle mean radius (m)
-    - B: proportionality constant (includes gravity and packing effects)
-    - c: dimensionless fitting parameter
+    - B: constant = ρ * sqrt(g) (particle packing density × sqrt(gravity))
+    - c: dimensionless fitting parameter (only free parameter)
     - Exponent 1.5: fixed for 2D case
 
 Fitting Method:
-    Uses linearization by transforming to: Q^(2/3) = B^(2/3) * (d - c*r)
-    Grid search over c values, linear regression for each c, minimize MSE.
+    Logarithmic transformation: ln(Q) = ln(B) + 1.5 * ln(d - c*r)
+    Grid search over c values to minimize MSE in log space with fixed B.
+    B is calculated from particle density and gravity, not fitted.
 
 Usage:
-    python beverloo_fit.py --data Q1,d1 Q2,d2 Q3,d3 ...
+    python beverloo_fit.py --data Q1,d1 Q2,d2 Q3,d3 ... --density <rho> --gravity <g>
 
 Example:
-    python beverloo_fit.py --data 0.5,0.02 0.8,0.025 1.2,0.03 1.5,0.035
+    python beverloo_fit.py --data 0.5,0.02 0.8,0.025 1.2,0.03 1.5,0.035 --density 500 --gravity 9.81
 """
 
 import argparse
@@ -39,19 +40,28 @@ class BeverlooFitter:
     Fits the 2D Beverloo law to experimental flow rate data.
     """
 
-    def __init__(self, particle_radius: float = 0.0015):
+    def __init__(self, particle_radius: float = 0.01, particle_density: float = None, gravity: float = 9.81):
         """
         Initialize the Beverloo fitter.
 
         Args:
-            particle_radius: Mean particle radius in meters (default: 0.0015 m)
+            particle_radius: Mean particle radius in meters (default: 0.01 m = 1 cm)
+            particle_density: Particle packing density (particles/m² in packing region)
+            gravity: Gravitational acceleration in m/s² (default: 9.81)
         """
         self.r = particle_radius
+        self.rho = particle_density
+        self.g = gravity
         self.exponent = 1.5  # Fixed exponent for 2D case
+
+        # Calculate B constant (fixed, not fitted)
+        if particle_density is not None:
+            self.B = particle_density * np.sqrt(gravity)
+        else:
+            self.B = None
 
         # Fitting results
         self.c_optimal: float = None
-        self.B_optimal: float = None
         self.mse_optimal: float = None
 
     def parse_data_pairs(self, data_args: List[str]) -> Tuple[np.ndarray, np.ndarray]:
@@ -109,29 +119,31 @@ class BeverlooFitter:
 
         return np.array(Q_values), np.array(d_values)
 
-    def beverloo_model(self, d: np.ndarray, B: float, c: float) -> np.ndarray:
+    def beverloo_model(self, d: np.ndarray, c: float) -> np.ndarray:
         """
-        Compute flow rate using Beverloo equation.
+        Compute flow rate using Beverloo equation with fixed B.
 
         Args:
             d: Opening width(s) in meters
-            B: Proportionality constant
             c: Dimensionless parameter
 
         Returns:
             Predicted flow rate Q
         """
+        if self.B is None:
+            raise RuntimeError("B constant not initialized. Must provide particle_density.")
+
         term = d - c * self.r
         # Prevent negative values under the power
         term = np.maximum(term, 1e-10)
-        return B * np.power(term, self.exponent)
+        return self.B * np.power(term, self.exponent)
 
-    def fit_linear_for_c(self, Q: np.ndarray, d: np.ndarray, c: float) -> Tuple[float, float, float]:
+    def evaluate_c(self, Q: np.ndarray, d: np.ndarray, c: float) -> Tuple[float, float]:
         """
-        For a given c, perform linear regression on transformed data.
+        Evaluate a given c value with fixed B using logarithmic transformation.
 
-        Transform: Q^(2/3) = B^(2/3) * (d - c*r)
-        This is linear: y = m*x where y = Q^(2/3), x = (d - c*r), m = B^(2/3)
+        Transform: ln(Q) = ln(B) + 1.5 * ln(d - c*r)
+        With fixed B, we check how well the data fits this linear relationship in log-log space.
 
         Args:
             Q: Flow rates
@@ -139,78 +151,75 @@ class BeverlooFitter:
             c: Candidate c value
 
         Returns:
-            Tuple of (B, mse, r_squared)
+            Tuple of (mse_log_space, r_squared)
         """
+        if self.B is None:
+            raise RuntimeError("B constant not initialized. Must provide particle_density.")
+
         # Transform data
         x = d - c * self.r
 
-        # Check if any x values are non-positive (would make model invalid)
-        if np.any(x <= 0):
-            return None, float('inf'), -float('inf')
+        # Check if any values are non-positive (would make log undefined)
+        if np.any(x <= 0) or np.any(Q <= 0):
+            return float('inf'), -float('inf')
 
-        y = np.power(Q, 2.0/3.0)
+        # Logarithmic transformations
+        ln_Q = np.log(Q)
+        ln_x = np.log(x)
 
-        # Linear regression: y = m*x (force through origin? or allow intercept?)
-        # For physical consistency, we force through origin (no intercept)
-        # y = m*x => m = sum(x*y) / sum(x^2)
-        slope = np.sum(x * y) / np.sum(x * x)
+        # Expected linear relationship in log space: ln(Q) = ln(B) + 1.5 * ln(x)
+        a_expected = np.log(self.B)  # ln(B)
+        b_expected = 1.5  # Fixed exponent for 2D case
 
-        # Alternative: allow intercept (more flexible but less physical)
-        # slope, intercept, r_value, p_value, std_err = stats.linregress(x, y)
+        # Predicted ln(Q) values
+        ln_Q_pred = a_expected + b_expected * ln_x
 
-        if slope <= 0:
-            return None, float('inf'), -float('inf')
+        # Compute MSE in log space
+        mse_log_space = np.mean((ln_Q - ln_Q_pred) ** 2)
 
-        # Compute B from slope: B = m^(3/2)
-        B = np.power(slope, 3.0/2.0)
-
-        # Compute MSE on original Q values (not transformed)
-        Q_pred = self.beverloo_model(d, B, c)
-        mse = np.mean((Q - Q_pred) ** 2)
-
-        # Compute R^2 for the linear fit
-        ss_res = np.sum((y - slope * x) ** 2)
-        ss_tot = np.sum((y - np.mean(y)) ** 2)
+        # Compute R^2 for the linear fit in log space
+        ss_res = np.sum((ln_Q - ln_Q_pred) ** 2)
+        ss_tot = np.sum((ln_Q - np.mean(ln_Q)) ** 2)
         r_squared = 1 - (ss_res / ss_tot) if ss_tot > 0 else 0
 
-        return B, mse, r_squared
+        return mse_log_space, r_squared
 
     def fit(self, Q: np.ndarray, d: np.ndarray,
-            c_min: float = 0.0, c_max: float = 3.0, c_step: float = 0.01) -> Dict[str, Any]:
+            c_min: float = 0.0, c_max: float = 10.0, c_step: float = 0.01) -> Dict[str, Any]:
         """
-        Fit Beverloo law by grid search over c parameter.
+        Fit Beverloo law by grid search over c parameter with fixed B using logarithmic transformation.
 
         Args:
             Q: Flow rates (particles/s)
             d: Opening widths (m)
-            c_min: Minimum c value to test
-            c_max: Maximum c value to test
-            c_step: Step size for c grid search
+            c_min: Minimum c value to test (default: 0.0)
+            c_max: Maximum c value to test (default: 10.0)
+            c_step: Step size for c grid search (default: 0.01)
 
         Returns:
-            Dictionary with fitting results
+            Dictionary with fitting results (MSE in log space)
         """
+        if self.B is None:
+            raise RuntimeError("B constant not initialized. Must provide particle_density.")
+
         c_candidates = np.arange(c_min, c_max + c_step, c_step)
 
         best_c = None
-        best_B = None
         best_mse = float('inf')
         best_r2 = -float('inf')
 
         results_list = []
 
         for c in c_candidates:
-            B, mse, r2 = self.fit_linear_for_c(Q, d, c)
+            mse, r2 = self.evaluate_c(Q, d, c)
 
-            if B is not None and mse < best_mse:
+            if mse < best_mse:
                 best_c = c
-                best_B = B
                 best_mse = mse
                 best_r2 = r2
 
             results_list.append({
                 'c': float(c),
-                'B': float(B) if B is not None else None,
                 'mse': float(mse) if not np.isinf(mse) else None,
                 'r2': float(r2) if not np.isinf(r2) else None
             })
@@ -223,12 +232,13 @@ class BeverlooFitter:
 
         # Store optimal values
         self.c_optimal = best_c
-        self.B_optimal = best_B
         self.mse_optimal = best_mse
 
         return {
             'c_optimal': float(best_c),
-            'B_optimal': float(best_B),
+            'B_constant': float(self.B),
+            'particle_density': float(self.rho),
+            'gravity': float(self.g),
             'mse_optimal': float(best_mse),
             'r2_optimal': float(best_r2),
             'particle_radius': float(self.r),
@@ -247,7 +257,7 @@ class BeverlooFitter:
             output_path: Path to save the plot
             show: Whether to display the plot
         """
-        if self.c_optimal is None or self.B_optimal is None:
+        if self.c_optimal is None or self.B is None:
             raise RuntimeError("Must call fit() before plot_fit()")
 
         fig, ax = plt.subplots(figsize=(10, 6))
@@ -264,7 +274,7 @@ class BeverlooFitter:
             d_max + 0.1 * d_range,
             200
         )
-        Q_fit = self.beverloo_model(d_fit, self.B_optimal, self.c_optimal)
+        Q_fit = self.beverloo_model(d_fit, self.c_optimal)
 
         ax.plot(d_fit, Q_fit, 'r-', linewidth=2,
                 label=f'Beverloo Fit: $Q = B(d - cr)^{{1.5}}$', zorder=2)
@@ -272,9 +282,10 @@ class BeverlooFitter:
         # Add text box with parameters
         textstr = '\n'.join([
             f'$c^* = {self.c_optimal:.3f}$',
-            f'$B = {self.B_optimal:.3f}$',
-            f'$r = {self.r:.4f}$ m',
-            f'MSE $= {self.mse_optimal:.6f}$'
+            f'$B = {self.B:.3f}$ (fixed)',
+            f'$\\rho = {self.rho:.1f}$ particles/m²',
+            f'$r = {self.r/2.0:.4f}$ m',
+            f'MSE (log) $= {self.mse_optimal:.6f}$'
         ])
         props = dict(boxstyle='round', facecolor='wheat', alpha=0.8)
         ax.text(0.05, 0.95, textstr, transform=ax.transAxes,
@@ -282,13 +293,63 @@ class BeverlooFitter:
 
         ax.set_xlabel('Opening Width $d$ (m)', fontsize=12)
         ax.set_ylabel('Flow Rate $Q$ (particles/s)', fontsize=12)
-        ax.set_title('Beverloo Law Fit: Flow Rate vs Opening Width (2D)', fontsize=14)
+        ax.set_title('Beverloo Law Fit (Log-Log): Flow Rate vs Opening Width (2D)', fontsize=14)
         ax.legend(fontsize=11)
         ax.grid(True, alpha=0.3)
 
         plt.tight_layout()
         plt.savefig(output_path, dpi=150)
         print(f"Plot saved to: {output_path}")
+
+        if show:
+            plt.show()
+        else:
+            plt.close()
+
+    def plot_mse_vs_c(self, fit_results: Dict[str, Any], output_path: Path, show: bool = False):
+        """
+        Plot MSE as a function of c parameter.
+
+        Args:
+            fit_results: Dictionary from fit() method containing grid search results
+            output_path: Path to save the plot
+            show: Whether to display the plot
+        """
+        if self.c_optimal is None:
+            raise RuntimeError("Must call fit() before plot_mse_vs_c()")
+
+        # Extract grid search results
+        grid_results = fit_results['grid_search_results']
+
+        # Filter out invalid results (where MSE is None/inf)
+        valid_results = [r for r in grid_results if r['mse'] is not None]
+
+        if not valid_results:
+            print("Warning: No valid MSE values to plot")
+            return
+
+        c_values = np.array([r['c'] for r in valid_results])
+        mse_values = np.array([r['mse'] for r in valid_results])
+
+        fig, ax = plt.subplots(figsize=(10, 6))
+
+        # Plot MSE vs c with log scale on Y-axis
+        ax.plot(c_values, mse_values, 'b-', linewidth=2, alpha=0.7)
+
+        # Mark optimal c
+        ax.plot(self.c_optimal, self.mse_optimal, 'r*', markersize=15,
+                label=f'Optimal: c = {self.c_optimal:.3f}, MSE (log) = {self.mse_optimal:.6f}')
+
+        ax.set_xlabel('Parameter c (dimensionless)', fontsize=12, fontweight='bold')
+        ax.set_ylabel('Mean Squared Error (log space)', fontsize=12, fontweight='bold')
+        ax.set_yscale('log')  # Set Y-axis to logarithmic scale
+        ax.set_title('Model Error vs Fitting Parameter c (Log-Log Fit)', fontsize=14, fontweight='bold')
+        ax.legend(fontsize=11)
+        ax.grid(True, alpha=0.3, which='both')  # Show grid for both major and minor ticks
+
+        plt.tight_layout()
+        plt.savefig(output_path, dpi=150)
+        print(f"MSE vs c plot saved to: {output_path}")
 
         if show:
             plt.show()
@@ -308,12 +369,14 @@ class BeverlooFitter:
         """
         # Generate fitted curve points for replotting
         d_fit = np.linspace(d.min(), d.max(), 100)
-        Q_fit = self.beverloo_model(d_fit, self.B_optimal, self.c_optimal)
+        Q_fit = self.beverloo_model(d_fit, self.c_optimal)
 
         output_data = {
             'parameters': {
                 'c_optimal': fit_results['c_optimal'],
-                'B_optimal': fit_results['B_optimal'],
+                'B_constant': fit_results['B_constant'],
+                'particle_density': fit_results['particle_density'],
+                'gravity': fit_results['gravity'],
                 'particle_radius': fit_results['particle_radius'],
                 'exponent': fit_results['exponent']
             },
@@ -330,7 +393,7 @@ class BeverlooFitter:
                 'opening_width_d': d_fit.tolist(),
                 'flow_rate_Q': Q_fit.tolist()
             },
-            'equation': f"Q = {fit_results['B_optimal']:.4f} * (d - {fit_results['c_optimal']:.4f} * {fit_results['particle_radius']:.4f})^{fit_results['exponent']}"
+            'equation': f"Q = {fit_results['B_constant']:.4f} * (d - {fit_results['c_optimal']:.4f} * {fit_results['particle_radius']:.4f})^{fit_results['exponent']}"
         }
 
         with open(output_path, 'w') as f:
@@ -361,11 +424,12 @@ def main():
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""
 Example:
-  python beverloo_fit.py --data 0.5,0.02 0.8,0.025 1.2,0.03 1.5,0.035
+  python beverloo_fit.py --data 0.5,0.02 0.8,0.025 1.2,0.03 1.5,0.035 --density 500
 
   Each data point is formatted as: FlowRate,OpeningWidth
   - FlowRate (Q): particles per second
   - OpeningWidth (d): meters
+  - density: particle packing density (particles/m²) - REQUIRED
         """
     )
 
@@ -380,8 +444,22 @@ Example:
     parser.add_argument(
         '--radius',
         type=float,
-        default=0.0015,
-        help='Particle mean radius in meters (default: 0.0015)'
+        default=0.01,
+        help='Particle mean radius in meters (default: 0.01 = 1 cm)'
+    )
+
+    parser.add_argument(
+        '--density',
+        type=float,
+        required=True,
+        help='Particle packing density (particles/m² in packing region)'
+    )
+
+    parser.add_argument(
+        '--gravity',
+        type=float,
+        default=9.81,
+        help='Gravitational acceleration in m/s² (default: 9.81)'
     )
 
     parser.add_argument(
@@ -397,6 +475,27 @@ Example:
         help='Display plot in addition to saving it'
     )
 
+    parser.add_argument(
+        '--c-min',
+        type=float,
+        default=0.0,
+        help='Minimum c value for grid search (default: 0.0)'
+    )
+
+    parser.add_argument(
+        '--c-max',
+        type=float,
+        default=10.0,
+        help='Maximum c value for grid search (default: 10.0)'
+    )
+
+    parser.add_argument(
+        '--c-step',
+        type=float,
+        default=0.01,
+        help='Step size for c grid search (default: 0.01)'
+    )
+
     args = parser.parse_args()
 
     # Find project root and create absolute output directory
@@ -405,7 +504,11 @@ Example:
     output_dir.mkdir(parents=True, exist_ok=True)
 
     # Initialize fitter
-    fitter = BeverlooFitter(particle_radius=args.radius)
+    fitter = BeverlooFitter(
+        particle_radius=2*args.radius,
+        particle_density=args.density,
+        gravity=args.gravity
+    )
 
     # Parse input data
     print("Parsing input data...")
@@ -422,33 +525,39 @@ Example:
     # Perform fitting
     print("\nPerforming Beverloo law fitting...")
     print(f"Using particle radius: r = {args.radius} m")
-    print("Grid search over c ∈ [0, 3] with step 0.01...")
+    print(f"Using particle density: ρ = {args.density} particles/m²")
+    print(f"Using gravity: g = {args.gravity} m/s²")
+    print(f"Fixed B constant: B = ρ√g = {fitter.B:.4f}")
+    print(f"Grid search over c ∈ [{args.c_min}, {args.c_max}] with step {args.c_step}...")
 
     try:
-        fit_results = fitter.fit(Q, d)
+        fit_results = fitter.fit(Q, d, c_min=args.c_min, c_max=args.c_max, c_step=args.c_step)
     except RuntimeError as e:
         print(f"Error: {e}", file=sys.stderr)
         sys.exit(1)
 
     # Display results
     print("\n" + "="*60)
-    print("FITTING RESULTS")
+    print("FITTING RESULTS (Log-Log Method)")
     print("="*60)
-    print(f"Optimal c:       {fit_results['c_optimal']:.6f}")
-    print(f"Optimal B:       {fit_results['B_optimal']:.6f}")
-    print(f"MSE:             {fit_results['mse_optimal']:.8f}")
-    print(f"R² (linear fit): {fit_results['r2_optimal']:.6f}")
+    print(f"Optimal c:           {fit_results['c_optimal']:.6f}")
+    print(f"Fixed B:             {fit_results['B_constant']:.6f} (= {args.density:.1f} × √{args.gravity:.2f})")
+    print(f"MSE (log space):     {fit_results['mse_optimal']:.8f}")
+    print(f"R² (log-log fit):    {fit_results['r2_optimal']:.6f}")
     print(f"\nBeverloo equation:")
-    print(f"  Q = {fit_results['B_optimal']:.4f} × (d - {fit_results['c_optimal']:.4f} × {args.radius:.4f})^1.5")
+    print(f"  Q = {fit_results['B_constant']:.4f} × (d - {fit_results['c_optimal']:.4f} × {args.radius:.4f})^1.5")
     print("="*60)
 
-    # Generate plot
-    print("\nGenerating plot...")
+    # Generate plots
+    print("\nGenerating plots...")
     plot_path = output_dir / 'beverloo_fit.png'
     fitter.plot_fit(Q, d, plot_path, show=args.show_plot)
 
+    mse_plot_path = output_dir / 'beverloo_mse_vs_c.png'
+    fitter.plot_mse_vs_c(fit_results, mse_plot_path, show=args.show_plot)
+
     # Save results
-    print("Saving results to JSON...")
+    print("\nSaving results to JSON...")
     results_path = output_dir / 'beverloo_fit_results.json'
     fitter.save_results(Q, d, fit_results, results_path)
 
