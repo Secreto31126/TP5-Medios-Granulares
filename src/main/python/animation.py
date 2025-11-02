@@ -1,8 +1,7 @@
 from typing import Callable
 
 import time
-
-import sys
+import argparse
 
 import matplotlib.pyplot as plt
 from matplotlib.lines import Line2D
@@ -86,4 +85,49 @@ def main(plot: bool = True, save: bool = True):
         print(f"Animation saved at {filename}")
 
 if __name__ == "__main__":
-    main("-s" not in sys.argv, "-p" not in sys.argv)
+    parser = argparse.ArgumentParser(
+        description="Generate animation from granular media simulation output"
+    )
+
+    parser.add_argument(
+        "--run-dir",
+        type=str,
+        default=None,
+        help="Path to the run directory containing particles/, walls/, and setup.txt (defaults to sim/ folder)"
+    )
+
+    plot_group = parser.add_mutually_exclusive_group()
+    plot_group.add_argument(
+        "--plot",
+        action="store_true",
+        default=True,
+        help="Display the animation (default)"
+    )
+    plot_group.add_argument(
+        "--no-plot",
+        action="store_false",
+        dest="plot",
+        help="Don't display the animation"
+    )
+
+    save_group = parser.add_mutually_exclusive_group()
+    save_group.add_argument(
+        "--save",
+        action="store_true",
+        default=True,
+        help="Save the animation as MP4 (default)"
+    )
+    save_group.add_argument(
+        "--no-save",
+        action="store_false",
+        dest="save",
+        help="Don't save the animation"
+    )
+
+    args = parser.parse_args()
+
+    # Set custom base path if provided
+    if args.run_dir is not None:
+        resources.set_base_path(args.run_dir)
+
+    main(plot=args.plot, save=args.save)
