@@ -7,23 +7,23 @@ import org.sims.models.*;
 
 record Mapping(Matrix<Queue<Particle>> matrix, double cells_w, double cells_h) {
     private static final Vector2[] LONG_LIST_OFFSETS = {
-        Vector2.NONE_NONE,
-        Vector2.NONE_ZERO,
-        Vector2.NONE_ONE,
-        Vector2.ZERO_NONE,
-        Vector2.ZERO_ZERO,
-        Vector2.ZERO_ONE,
-        Vector2.ONE_NONE,
-        Vector2.ONE_ZERO,
-        Vector2.ONE_ONE
+            Vector2.NONE_NONE,
+            Vector2.NONE_ZERO,
+            Vector2.NONE_ONE,
+            Vector2.ZERO_NONE,
+            Vector2.ZERO_ZERO,
+            Vector2.ZERO_ONE,
+            Vector2.ONE_NONE,
+            Vector2.ONE_ZERO,
+            Vector2.ONE_ONE
     };
 
     private static final Vector2[] SHORT_LIST_OFFSETS = {
-        Vector2.NONE_NONE,
-        Vector2.NONE_ZERO,
-        Vector2.NONE_ONE,
-        Vector2.ZERO_NONE,
-        Vector2.ZERO_ZERO
+            Vector2.NONE_NONE,
+            Vector2.NONE_ZERO,
+            Vector2.NONE_ONE,
+            Vector2.ZERO_NONE,
+            Vector2.ZERO_ZERO
     };
 
     public Mapping(double width, double height, double Rc) {
