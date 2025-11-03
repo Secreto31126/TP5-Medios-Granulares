@@ -260,7 +260,7 @@ class BeverlooFitter:
         if self.c_optimal is None or self.B is None:
             raise RuntimeError("Must call fit() before plot_fit()")
 
-        fig, ax = plt.subplots(figsize=(10, 6))
+        fig, ax = plt.subplots(figsize=(12, 7))
 
         # Plot raw data
         ax.scatter(d, Q, s=100, c='blue', marker='o',
@@ -279,26 +279,13 @@ class BeverlooFitter:
         ax.plot(d_fit, Q_fit, 'r-', linewidth=2,
                 label=f'Beverloo Fit: $Q = B(d - cr)^{{1.5}}$', zorder=2)
 
-        # Add text box with parameters
-        textstr = '\n'.join([
-            f'$c^* = {self.c_optimal:.3f}$',
-            f'$B = {self.B:.3f}$ (fixed)',
-            f'$\\rho = {self.rho:.1f}$ particles/m²',
-            f'$r = {self.r/2.0:.4f}$ m',
-            f'MSE (log) $= {self.mse_optimal:.6f}$'
-        ])
-        props = dict(boxstyle='round', facecolor='wheat', alpha=0.8)
-        ax.text(0.05, 0.95, textstr, transform=ax.transAxes,
-                fontsize=11, verticalalignment='top', bbox=props)
-
-        ax.set_xlabel('Opening Width $d$ (m)', fontsize=12)
-        ax.set_ylabel('Flow Rate $Q$ (particles/s)', fontsize=12)
-        ax.set_title('Beverloo Law Fit (Log-Log): Flow Rate vs Opening Width (2D)', fontsize=14)
-        ax.legend(fontsize=11)
-        ax.grid(True, alpha=0.3)
+        ax.set_xlabel(r'Apertura $D$ (m)', fontsize=13, fontweight='bold')
+        ax.set_ylabel(r'Caudal $Q$ (partículas/s)', fontsize=13, fontweight='bold')
+        ax.legend(fontsize=10)
+        ax.grid(True, alpha=0.3, linestyle='--')
 
         plt.tight_layout()
-        plt.savefig(output_path, dpi=150)
+        plt.savefig(output_path, dpi=300)
         print(f"Plot saved to: {output_path}")
 
         if show:
@@ -331,7 +318,7 @@ class BeverlooFitter:
         c_values = np.array([r['c'] for r in valid_results])
         mse_values = np.array([r['mse'] for r in valid_results])
 
-        fig, ax = plt.subplots(figsize=(10, 6))
+        fig, ax = plt.subplots(figsize=(12, 7))
 
         # Plot MSE vs c with log scale on Y-axis
         ax.plot(c_values, mse_values, 'b-', linewidth=2, alpha=0.7)
@@ -340,15 +327,15 @@ class BeverlooFitter:
         ax.plot(self.c_optimal, self.mse_optimal, 'r*', markersize=15,
                 label=f'Optimal: c = {self.c_optimal:.3f}, MSE (log) = {self.mse_optimal:.6f}')
 
-        ax.set_xlabel('Parameter c (dimensionless)', fontsize=12, fontweight='bold')
-        ax.set_ylabel('Mean Squared Error (log space)', fontsize=12, fontweight='bold')
+        ax.set_xlabel(r'$c$', fontsize=13, fontweight='bold')
+        ax.set_ylabel('Error Cuadrático Medio', fontsize=13, fontweight='bold')
         ax.set_yscale('log')  # Set Y-axis to logarithmic scale
-        ax.set_title('Model Error vs Fitting Parameter c (Log-Log Fit)', fontsize=14, fontweight='bold')
-        ax.legend(fontsize=11)
-        ax.grid(True, alpha=0.3, which='both')  # Show grid for both major and minor ticks
+        ax.set_xlim([0.5, 2.0])
+        ax.legend(fontsize=10)
+        ax.grid(True, alpha=0.3, linestyle='--', which='both')  # Show grid for both major and minor ticks
 
         plt.tight_layout()
-        plt.savefig(output_path, dpi=150)
+        plt.savefig(output_path, dpi=300)
         print(f"MSE vs c plot saved to: {output_path}")
 
         if show:

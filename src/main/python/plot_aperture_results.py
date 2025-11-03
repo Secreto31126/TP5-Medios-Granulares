@@ -108,12 +108,10 @@ class ApertureResultsPlotter:
 
             ax.plot(exit_times, cumulative_count, 'o-',
                    color=colors[i], markersize=3, alpha=0.7,
-                   label=f'd = {aperture:.3f} m (Q = {self.flow_rates[i]:.3f} p/s)')
+                   label=f'$d$ = {aperture:.3f} m')
 
-        ax.set_xlabel('Time (s)', fontsize=13, fontweight='bold')
-        ax.set_ylabel('Cumulative particles exited', fontsize=13, fontweight='bold')
-        ax.set_title('Discharge Curves for Different Aperture Sizes',
-                    fontsize=15, fontweight='bold')
+        ax.set_xlabel('Tiempo (s)', fontsize=13, fontweight='bold')
+        ax.set_ylabel('Partículas acumuladas', fontsize=13, fontweight='bold')
         ax.legend(fontsize=10, loc='best')
         ax.grid(True, alpha=0.3, linestyle='--')
 
