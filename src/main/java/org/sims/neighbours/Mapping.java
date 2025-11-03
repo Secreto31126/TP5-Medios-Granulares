@@ -46,25 +46,21 @@ record Mapping(Matrix<Queue<Particle>> matrix, double cells_w, double cells_h) {
     public List<Vector2> add(final Particle p) {
         final var coord = this.getCoordinates(p);
 
-        var x_cheese = (int) coord.x();
+        var x_trunc = (int) coord.x();
         if (coord.x() < 0) {
-            System.out.println("Particle under bounds on X: " + p.position());
-            x_cheese = 0;
+            x_trunc = 0;
         } else if (this.matrix.rows() <= coord.x()) {
-            System.out.println("Particle over bounds on X: " + p.position());
-            x_cheese = this.matrix.rows() - 1;
+            x_trunc = this.matrix.rows() - 1;
         }
 
-        var y_cheese = (int) coord.y();
+        var y_trunc = (int) coord.y();
         if (coord.y() < 0) {
-            System.out.println("Particle under bounds on X: " + p.position());
-            y_cheese = 0;
+            y_trunc = 0;
         } else if (this.matrix.cols() <= coord.y()) {
-            System.out.println("Particle over bounds on X: " + p.position());
-            y_cheese = this.matrix.cols() - 1;
+            y_trunc = this.matrix.cols() - 1;
         }
 
-        this.matrix.get(x_cheese, y_cheese).add(p);
+        this.matrix.get(x_trunc, y_trunc).add(p);
         return this.longList(coord);
     }
 
