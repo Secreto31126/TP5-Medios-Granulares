@@ -110,9 +110,10 @@ class OmegaResultsPlotter:
                    color=colors[i], markersize=3, alpha=0.7,
                    label=f'$\\omega$ = {omega:.0f} s⁻¹')
 
-        ax.set_xlabel('Tiempo (s)', fontsize=13, fontweight='bold')
-        ax.set_ylabel('Partículas acumuladas', fontsize=13, fontweight='bold')
-        ax.legend(fontsize=10, loc='best')
+        ax.set_xlabel('Tiempo (s)', fontsize=28, fontweight='bold')
+        ax.set_ylabel('Partículas acumuladas', fontsize=28, fontweight='bold')
+        ax.legend(fontsize=28, loc='best')
+        ax.tick_params(axis='both', labelsize=28)
         ax.grid(True, alpha=0.3, linestyle='--')
 
         plt.tight_layout()
@@ -143,17 +144,19 @@ class OmegaResultsPlotter:
                     fmt='o-', markersize=8, capsize=5, capthick=2,
                     linewidth=2, elinewidth=2, color='navy', alpha=0.7)
 
-        ax1.set_xlabel(r'$\omega$ (s$^{-1}$)', fontsize=13, fontweight='bold')
-        ax1.set_ylabel('Caudal Q (partículas/s)', fontsize=13, fontweight='bold')
+        ax1.set_xlabel(r'$\omega$ (s$^{-1}$)', fontsize=28, fontweight='bold')
+        ax1.set_ylabel('Caudal Q (partículas/s)', fontsize=28, fontweight='bold')
+        ax1.tick_params(axis='both', labelsize=28)
         ax1.grid(True, alpha=0.3, linestyle='--')
 
         # R² subplot (only for linear analysis)
         if has_r_squared:
             ax2.plot(self.omega_values, self.r_squared_values, 's-',
                     markersize=7, linewidth=2, color='darkgreen', alpha=0.7)
-            ax2.set_xlabel('Vibration frequency ω (s⁻¹)', fontsize=12, fontweight='bold')
-            ax2.set_ylabel('R² (goodness of fit)', fontsize=12, fontweight='bold')
-            ax2.set_title('Linear Fit Quality', fontsize=13, fontweight='bold')
+            ax2.set_xlabel('Vibration frequency ω (s⁻¹)', fontsize=28, fontweight='bold')
+            ax2.set_ylabel('R² (goodness of fit)', fontsize=28, fontweight='bold')
+            ax2.set_title('Linear Fit Quality', fontsize=28, fontweight='bold')
+            ax2.tick_params(axis='both', labelsize=28)
             ax2.grid(True, alpha=0.3, linestyle='--')
             ax2.set_ylim([0.9, 1.0])
 
